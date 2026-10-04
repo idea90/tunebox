@@ -179,6 +179,25 @@ python -m pytest
 
 The UI tests drive the real Textual app headlessly with simulated clicks, scrolls and key presses.
 
+### Project layout
+
+```
+tunebox/
+  main.py            CLI entry point and one-shot commands
+  config.py          settings, paths, legacy-name migration
+  core/              no UI code
+    player.py          playback, gapless hand-over, sleep timer
+    playqueue.py       queue editing and the shuffle bag (mixed into Player)
+    database/          SQLite: connection/schema, favorites, playlists, history, downloads
+    ytmusic.py  downloader.py  lyrics.py  albumart.py  spectrum.py  recommend.py  session.py  share.py  mediakeys.py
+  ui/                Textual app
+    app.py             app shell: layout, key bindings, lifecycle
+    mixins/            app behaviour, one file per feature (data, refresh, lyrics, art, viz,
+                       navigation, playback, library, clipboard, settings)
+    panels.py  screens.py  widgets.py  components.py  styles.py  constants.py  theme.py  visualizer.py  inline.py  suggest.py
+tests/
+```
+
 ### Remote Control
 
 ```bash
