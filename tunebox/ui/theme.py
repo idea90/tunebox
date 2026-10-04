@@ -1,0 +1,117 @@
+"""
+Metro-inspired Color Themes for Tunebox
+"""
+from typing import Dict
+from ..config import config
+
+THEMES: Dict[str, Dict[str, str]] = {
+    "metro_dark": {
+        "name": "Metro Dark",
+        "primary": "bold bright_magenta",
+        "secondary": "bold cyan",
+        "accent": "bright_cyan",
+        "highlight": "bold bright_yellow",
+        "playing_track": "bold bright_green",
+        "lyrics_active": "bold bright_white on dark_magenta",
+        "lyrics_past": "bright_black",
+        "lyrics_future": "grey62",
+        "border": "bright_black",
+        "active_border": "bright_magenta",
+        "badge": "bold white on magenta",
+        "badge_dim": "white on grey23",
+        "text": "white",
+        "dim": "bright_black",
+        "success": "bold green",
+        "error": "bold bright_red",
+        "progress_fill": "bright_magenta",
+        "progress_empty": "grey23",
+        "header_bg": "on magenta",
+    },
+    "neon_purple": {
+        "name": "Neon Purple",
+        "primary": "bold magenta",
+        "secondary": "bold bright_blue",
+        "accent": "bright_magenta",
+        "highlight": "bold bright_yellow",
+        "playing_track": "bold bright_magenta",
+        "lyrics_active": "bold bright_white on purple4",
+        "lyrics_past": "grey39",
+        "lyrics_future": "grey70",
+        "border": "purple4",
+        "active_border": "bright_magenta",
+        "badge": "bold white on dark_violet",
+        "badge_dim": "white on grey19",
+        "text": "bright_white",
+        "dim": "grey46",
+        "success": "bold bright_green",
+        "error": "bold bright_red",
+        "progress_fill": "bright_magenta",
+        "progress_empty": "grey19",
+        "header_bg": "on dark_violet",
+    },
+    "emerald": {
+        "name": "Emerald Clean",
+        "primary": "bold bright_green",
+        "secondary": "bold bright_cyan",
+        "accent": "spring_green1",
+        "highlight": "bold yellow",
+        "playing_track": "bold bright_green",
+        "lyrics_active": "bold bright_white on dark_green",
+        "lyrics_past": "grey39",
+        "lyrics_future": "grey70",
+        "border": "grey30",
+        "active_border": "bright_green",
+        "badge": "bold white on dark_green",
+        "badge_dim": "white on grey23",
+        "text": "white",
+        "dim": "grey50",
+        "success": "bold green",
+        "error": "bold red",
+        "progress_fill": "bright_green",
+        "progress_empty": "grey23",
+        "header_bg": "on dark_green",
+    },
+    "cyberpunk": {
+        "name": "Cyberpunk Neon",
+        "primary": "bold bright_yellow",
+        "secondary": "bold bright_cyan",
+        "accent": "bright_cyan",
+        "highlight": "bold bright_pink",
+        "playing_track": "bold bright_yellow",
+        "lyrics_active": "bold bright_yellow on grey11",
+        "lyrics_past": "grey35",
+        "lyrics_future": "grey74",
+        "border": "bright_cyan",
+        "active_border": "bright_yellow",
+        "badge": "bold black on bright_yellow",
+        "badge_dim": "white on grey19",
+        "text": "white",
+        "dim": "grey46",
+        "success": "bold bright_green",
+        "error": "bold bright_red",
+        "progress_fill": "bright_yellow",
+        "progress_empty": "grey23",
+        "header_bg": "on bright_yellow",
+    }
+}
+
+def get_theme() -> Dict[str, str]:
+    theme_name = config.get("theme", "metro_dark")
+    return THEMES.get(theme_name, THEMES["metro_dark"])
+
+
+# Textual palettes (hex) for the interactive app, keyed like THEMES above.
+TEXTUAL_PALETTES: Dict[str, Dict[str, str]] = {
+    "metro_dark": dict(primary="#d946ef", secondary="#22d3ee", accent="#facc15",
+                       background="#121214", surface="#1b1b1f", panel="#26262c",
+                       success="#4ade80", error="#f87171"),
+    "neon_purple": dict(primary="#a855f7", secondary="#60a5fa", accent="#f0abfc",
+                        background="#0e0a1a", surface="#171127", panel="#231b3a",
+                        success="#4ade80", error="#f87171"),
+    "emerald": dict(primary="#34d399", secondary="#22d3ee", accent="#a3e635",
+                    background="#0b1210", surface="#121c18", panel="#1c2a24",
+                    success="#4ade80", error="#f87171"),
+    "cyberpunk": dict(primary="#facc15", secondary="#22d3ee", accent="#ff2e97",
+                      background="#0a0a12", surface="#12121d", panel="#1c1c2e",
+                      success="#4ade80", error="#ff5c7a"),
+}
