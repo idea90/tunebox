@@ -7,6 +7,7 @@ from textual.widgets import Input, Select, TabbedContent
 
 from ...config import config
 from ...core.player import player
+from ..screens import HelpScreen
 from ..widgets import TrackTable, is_track
 
 
@@ -112,6 +113,10 @@ class NavigationMixin:
         table_id = {"home": "t-home", "search": "t-search", "queue": "t-queue",
                     "library": "t-library", "downloads": "t-downloads", "detail": "t-detail"}.get(self.active_tab)
         return self.query_one(f"#{table_id}", TrackTable) if table_id else None
+
+    def action_help(self) -> None:
+        if not isinstance(self.screen, HelpScreen):
+            self.push_screen(HelpScreen())
 
     def action_tab(self, name: str) -> None:
         self.query_one(TabbedContent).active = name

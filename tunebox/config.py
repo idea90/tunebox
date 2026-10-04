@@ -110,11 +110,14 @@ DOWNLOADS_DIR = APP_DIR / "downloads"
 CONFIG_FILE = APP_DIR / "config.json"
 DB_FILE = _pick_db_file(APP_DIR)
 SESSION_FILE = APP_DIR / "session.json"
+COVERS_DIR = APP_DIR / "covers"                 # downloaded album covers (see core/albumart.py)
+COVER_LOOKUP_FILE = APP_DIR / "cover_lookup.json"   # which cover belongs to which song
 AUTH_FILE = APP_DIR / "ytmusic_auth.json"   # written by `tunebox login`
 
 APP_DIR.mkdir(parents=True, exist_ok=True)
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
+COVERS_DIR.mkdir(parents=True, exist_ok=True)
 
 DEFAULT_CONFIG: Dict[str, Any] = {
     "volume": 80,

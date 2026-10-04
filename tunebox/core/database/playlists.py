@@ -145,6 +145,10 @@ def add_track_to_playlist(playlist_id: str, track: Dict[str, Any]) -> bool:
     finally:
         conn.close()
 
+def add_tracks_to_playlist(playlist_id: str, tracks: List[Dict[str, Any]]) -> int:
+    """Append `tracks` in order. Returns how many were saved (a track without an id is skipped)."""
+    return sum(1 for t in tracks if add_track_to_playlist(playlist_id, t))
+
 def remove_track_from_playlist(playlist_id: str, video_id: str) -> bool:
     conn = get_db()
     cursor = conn.cursor()

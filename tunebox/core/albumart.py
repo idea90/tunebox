@@ -1,9 +1,12 @@
 """
 Album art for the terminal.
 
-    find_cover_url(track)     official album cover from iTunes, then Deezer (cached; None if not found)
+    find_cover_url(track)     official album cover from iTunes, then Deezer (None if not found)
     best_cover_url(track)     that, else YouTube Music's own square album art, never a video frame
-    fetch_image(track)        download the cover (cached in memory)
+    fetch_image(track)        the cover as an image
+
+Both the lookup (which cover belongs to a song) and the image files are cached on disk, so a song
+seen before shows its cover instantly, with no network, on the next launch.
     render_art(img, w, h, s)  turn an image into a Rich Text block
 
 Styles:
@@ -11,9 +14,13 @@ Styles:
     "blocks"  half-block pixels, two image rows per text row (sharper)
     "off"     no art
 """
+import hashlib
 import io
+import json
+import os
 import re
 import threading
+import time
 import unicodedata
 from collections import OrderedDict
 from typing import Any, Dict, Optional
@@ -22,7 +29,7 @@ import requests
 from PIL import Image
 from rich.text import Text
 
-from ..config import config
+from ..config import config, COVERS_DIR, COVER_LOOKUP_FILE
 
 STYLES = ["auto", "ascii", "blocks", "off"]
 
@@ -48,6 +55,13 @@ DEEZER_URL = "https://api.deezer.com/search"
 LOOKUP_TIMEOUT = 6
 _LOOKUP: "OrderedDict[str, Optional[str]]" = OrderedDict()   # track key -> cover url (None = nothing found)
 _LOOKUP_MAX = 256
+_UNKNOWN = object()                                           # "not in the disk cache" (None means "looked, no cover")
+
+# On-disk caches. Found covers never change, so they are kept; "no cover found" is retried after a week.
+LOOKUP_DISK_MAX = 2000                                        # remembered songs
+MISS_TTL = 7 * 24 * 3600                                      # seconds before a miss is looked up again
+COVER_FILES_MAX = 200                                         # image files kept (about 30 MB); oldest used go first
+_disk: Optional[Dict[str, Dict[str, Any]]] = None             # lookup cache, loaded on first use
 
 
 def _norm(text: str) -> str:
@@ -118,11 +132,49 @@ def _lookup_deezer(term: str, track: Dict[str, Any]):
     return _pick(cands, track)
 
 
+def _disk_lookup() -> Dict[str, Dict[str, Any]]:
+    """The persisted lookup cache (loaded once). Call with _LOCK held."""
+    global _disk
+    if _disk is None:
+        try:
+            data = json.loads(COVER_LOOKUP_FILE.read_text(encoding="utf-8"))
+            _disk = data if isinstance(data, dict) else {}
+        except (OSError, ValueError):
+            _disk = {}
+    return _disk
+
+
+def _disk_get(key: str):
+    """Cached cover url for this song, None for a recent miss, or _UNKNOWN."""
+    with _LOCK:
+        entry = _disk_lookup().get(key)
+    if not isinstance(entry, dict) or "url" not in entry:
+        return _UNKNOWN
+    if entry["url"] is None and time.time() - entry.get("t", 0) > MISS_TTL:
+        return _UNKNOWN
+    return entry["url"]
+
+
+def _disk_put(key: str, url: Optional[str]) -> None:
+    with _LOCK:
+        data = _disk_lookup()
+        data[key] = {"url": url, "t": int(time.time())}
+        if len(data) > LOOKUP_DISK_MAX:
+            for old in sorted(data, key=lambda k: data[k].get("t", 0))[:len(data) - LOOKUP_DISK_MAX]:
+                del data[old]
+        try:
+            tmp = COVER_LOOKUP_FILE.with_suffix(".tmp")
+            tmp.write_text(json.dumps(data), encoding="utf-8")
+            os.replace(tmp, COVER_LOOKUP_FILE)
+        except OSError:
+            pass                                              # a cache that can't be saved is just a cache miss
+
+
 def find_cover_url(track: Dict[str, Any]) -> Optional[str]:
     """Official album cover (1000 px square) for this song from iTunes, then Deezer. None if neither knows it.
 
-    Turned off by the `online_covers` setting. Results are remembered (misses too), but a network error is not,
-    so an offline start doesn't blank the art for the rest of the session.
+    Turned off by the `online_covers` setting. Results are remembered in memory and on disk (misses too, for
+    a week), but a network error is not, so an offline start doesn't blank the art for the rest of the session.
     """
     if not config.get("online_covers", True) or not track.get("title"):
         return None
@@ -132,6 +184,11 @@ def find_cover_url(track: Dict[str, Any]) -> Optional[str]:
         if key in _LOOKUP:
             _LOOKUP.move_to_end(key)
             return _LOOKUP[key]
+    cached = _disk_get(key)
+    if cached is not _UNKNOWN:
+        with _LOCK:
+            _LOOKUP[key] = cached
+        return cached
 
     term = f"{artists[0] if artists else ''} {_norm(track['title'])}".strip()
     url, failed = None, False
@@ -149,6 +206,7 @@ def find_cover_url(track: Dict[str, Any]) -> Optional[str]:
         _LOOKUP[key] = url
         while len(_LOOKUP) > _LOOKUP_MAX:
             _LOOKUP.popitem(last=False)
+    _disk_put(key, url)
     return url
 
 
@@ -165,8 +223,45 @@ def best_cover_url(track: Dict[str, Any]) -> Optional[str]:
     return find_cover_url(track) or _own_art(track)
 
 
+def _cover_path(url: str):
+    return COVERS_DIR / (hashlib.sha1(url.encode("utf-8")).hexdigest() + ".img")
+
+
+def _read_cover(url: str) -> Optional[Image.Image]:
+    """The cover from the disk cache, or None. A corrupt file is deleted."""
+    path = _cover_path(url)
+    try:
+        with open(path, "rb") as f:
+            img = Image.open(io.BytesIO(f.read()))
+            img.load()
+        os.utime(path)                                        # "last used", so eviction drops the stalest
+        return img.convert("RGB")
+    except FileNotFoundError:
+        return None
+    except Exception:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+        return None
+
+
+def _write_cover(url: str, data: bytes) -> None:
+    """Keep the downloaded bytes, then drop the least recently used files beyond COVER_FILES_MAX."""
+    path = _cover_path(url)
+    try:
+        tmp = path.with_suffix(".tmp")
+        tmp.write_bytes(data)
+        os.replace(tmp, path)
+        files = sorted(COVERS_DIR.glob("*.img"), key=lambda f: f.stat().st_mtime)
+        for old in files[:max(0, len(files) - COVER_FILES_MAX)]:
+            old.unlink()
+    except OSError:
+        pass
+
+
 def fetch_image(track: Dict[str, Any]) -> Optional[Image.Image]:
-    """Download the track's cover. Returns None on any failure (art is decoration, never an error)."""
+    """The track's cover (memory, then disk, then download). None on any failure: art is decoration, never an error."""
     url = best_cover_url(track)
     if not url:
         return None
@@ -174,14 +269,17 @@ def fetch_image(track: Dict[str, Any]) -> Optional[Image.Image]:
         if url in _CACHE:
             _CACHE.move_to_end(url)
             return _CACHE[url]
-    try:
-        resp = requests.get(url, timeout=8)
-        resp.raise_for_status()
-        img = Image.open(io.BytesIO(resp.content))
-        img.load()
-        img = img.convert("RGB")
-    except Exception:
-        return None
+    img = _read_cover(url)
+    if img is None:
+        try:
+            resp = requests.get(url, timeout=8)
+            resp.raise_for_status()
+            img = Image.open(io.BytesIO(resp.content))
+            img.load()
+            img = img.convert("RGB")
+        except Exception:
+            return None
+        _write_cover(url, resp.content)
     with _LOCK:
         _CACHE[url] = img
         while len(_CACHE) > _CACHE_MAX:

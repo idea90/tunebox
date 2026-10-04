@@ -1,16 +1,19 @@
 """Favorites, playlists and queue editing: the actions that change what is saved or queued."""
+import time
 from typing import Any, Dict, Optional
 
 from ...core.database import (
     add_favorite,
     add_track_to_playlist,
+    add_tracks_to_playlist,
+    create_playlist,
     delete_playlist,
     get_favorite_ids,
     remove_download,
     remove_favorite,
 )
 from ...core.player import player
-from ..screens import PlaylistPicker
+from ..screens import NamePrompt, PlaylistPicker
 from ..widgets import TrackTable
 
 
@@ -94,6 +97,24 @@ class LibraryMixin:
         self._sig = None
         self.refresh_tables()
         table.move_cursor(row=new, animate=False)
+
+    def action_save_queue(self) -> None:
+        """S: ask for a name, then save the whole queue (as it is now) as a new playlist."""
+        songs = [t for t in list(player.queue) if t.get("videoId")]
+        if not songs:
+            self.say("The queue is empty. Nothing to save.", True)
+            return
+
+        def done(name: Optional[str]) -> None:
+            if not name:
+                return
+            saved = add_tracks_to_playlist(create_playlist(name)["id"], songs)
+            self.say(f"Saved {saved} song{'s' if saved != 1 else ''} to playlist \"{name}\"")
+            self._sig = None
+            self.refresh_tables()
+
+        self.push_screen(NamePrompt(f"Save {len(songs)} queued song{'s' if len(songs) != 1 else ''} as a playlist",
+                                    time.strftime("Queue %b %d")), done)
 
     def action_clear_queue(self) -> None:
         player.clear_queue()

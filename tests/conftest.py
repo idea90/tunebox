@@ -26,7 +26,7 @@ def isolate_side_effects(request, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def isolate_personal_and_system(request, monkeypatch):
+def isolate_personal_and_system(request, monkeypatch, tmp_path_factory):
     """Never touch the real clipboard, never probe the terminal for graphics, and keep the shared
     test database's history out of the Home tests. Opt in with real_recs / real_clipboard / real_inline."""
     from tunebox.core import share, recommend
@@ -41,8 +41,14 @@ def isolate_personal_and_system(request, monkeypatch):
         monkeypatch.setattr(recommend, "local_shelves", lambda: [])
         monkeypatch.setattr(recommend, "seed_track", lambda: None)
 
+    from tunebox.core import albumart
+    cache = tmp_path_factory.mktemp("covers-cache")      # a private dir per test, not the shared test home
+    monkeypatch.setattr(albumart, "COVERS_DIR", cache)
+    monkeypatch.setattr(albumart, "COVER_LOOKUP_FILE", cache / "cover_lookup.json")
+    monkeypatch.setattr(albumart, "_disk", None)
+    albumart._LOOKUP.clear()
+    albumart._CACHE.clear()
     if "real_cover_lookup" not in request.keywords:      # never call iTunes / Deezer from tests
-        from tunebox.core import albumart
         monkeypatch.setattr(albumart, "find_cover_url", lambda track: None)
 
     if "real_inline" not in request.keywords:
