@@ -16,9 +16,10 @@ Built on [Textual](https://textual.textualize.io/), `yt-dlp`, `ytmusicapi` and `
 - **Artist, album and playlist pages** with a full song list, Play all and Shuffle. Press `g` / `b` on any song to jump to its artist / album.
 - **Search suggestions** as you type (your own recent searches first), accepted with the Right arrow.
 - **Sleep timer** (15 / 30 / 60 / 90 min) that pauses playback when it runs out.
-- **Queue editing**: play next, add to queue, reorder, remove.
+- **Queue editing**: play next, add to queue, reorder, remove, and save the queue as a playlist (`S`).
 - **Your YouTube Music account** (optional): liked songs and your playlists, via `tunebox login`.
 - **Media keys** (optional): hardware play/pause/next/previous, via `pip install "tunebox[media]"`.
+- **Built-in help**: press `?` for every shortcut, with a filter box.
 - **Mouse and keyboard**: click a song to play it, click the seek bar, click the heart, click the control chips, scroll over the player card for volume.
 - **Album art in the terminal**: the playing song's official album cover (looked up on iTunes, then Deezer; never a YouTube video frame), also embedded in downloads. On terminals with a graphics protocol it is drawn as a real image (kitty and Ghostty via the kitty protocol; WezTerm, Windows Terminal 1.22+, iTerm2, foot and Konsole via Sixel). Everywhere else it falls back to colored ASCII art or sharp half-block pixels. Press `i` to cycle `auto` / `ascii` / `blocks` / `off`.
 - **Home that knows you**: "Jump back in", "Your most played" and "Because you played ..." (suggestions based on your latest song) sit above YouTube's own shelves, built from your listening history.
@@ -101,6 +102,8 @@ Scrolling over a list scrolls the list, not the volume.
 | `y` / `Y` | Copy a link to the highlighted (or playing) item / copy the lyrics |
 | `x` | Queue: remove song. Library: delete playlist / un-favorite. Downloads: delete the file |
 | `c` | Clear the queue |
+| `S` | Save the whole queue as a new playlist (asks for a name) |
+| `?` | Show every shortcut, with a filter box |
 | `t` | Cycle theme |
 | `q` | Quit |
 
@@ -165,7 +168,8 @@ tries again next time. The old `METROLIST_HOME` and `METROLIST_NO_GRAPHICS` vari
 ## Data
 
 Everything lives in `~/.tunebox` (override with the `TUNEBOX_HOME` environment variable):
-`config.json`, `tunebox.db`, `session.json`, `ytmusic_auth.json` (if signed in), `cache/` (audio cache), `downloads/`.
+`config.json`, `tunebox.db`, `session.json`, `ytmusic_auth.json` (if signed in), `cache/` (audio cache), `downloads/`,
+`covers/` and `cover_lookup.json` (album covers and which cover belongs to which song, so seen songs show their cover instantly and offline; at most 200 images, safe to delete).
 Clear the audio cache from Settings.
 
 For age-restricted or region-locked tracks, set `cookie_file` in `config.json` to a Netscape-format
