@@ -41,6 +41,10 @@ def isolate_personal_and_system(request, monkeypatch):
         monkeypatch.setattr(recommend, "local_shelves", lambda: [])
         monkeypatch.setattr(recommend, "seed_track", lambda: None)
 
+    if "real_cover_lookup" not in request.keywords:      # never call iTunes / Deezer from tests
+        from tunebox.core import albumart
+        monkeypatch.setattr(albumart, "find_cover_url", lambda track: None)
+
     if "real_inline" not in request.keywords:
         monkeypatch.setitem(inline._state, "checked", True)
         monkeypatch.setitem(inline._state, "protocol", None)

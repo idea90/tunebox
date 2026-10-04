@@ -11,6 +11,7 @@ import requests
 from pathlib import Path
 from typing import Dict, Any, Optional
 from ..config import config, CACHE_DIR, DOWNLOADS_DIR
+from . import albumart
 from .database import add_download
 
 class _SilentLogger:
@@ -69,7 +70,7 @@ def write_tags(path: str, track: Dict[str, Any]) -> bool:
     artist = track.get("artist") or ""
     album = track.get("album")
     album = album.get("name", "") if isinstance(album, dict) else (album or "")
-    cover = _fetch_cover(track.get("thumbnail", ""))
+    cover = _fetch_cover(albumart.best_cover_url(track) or "")
     ext = Path(path).suffix.lower()
 
     try:

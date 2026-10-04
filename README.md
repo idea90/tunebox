@@ -20,7 +20,7 @@ Built on [Textual](https://textual.textualize.io/), `yt-dlp`, `ytmusicapi` and `
 - **Your YouTube Music account** (optional): liked songs and your playlists, via `tunebox login`.
 - **Media keys** (optional): hardware play/pause/next/previous, via `pip install "tunebox[media]"`.
 - **Mouse and keyboard**: click a song to play it, click the seek bar, click the heart, click the control chips, scroll over the player card for volume.
-- **Album art in the terminal**: the playing song's cover. On terminals with a graphics protocol it is drawn as a real image (kitty and Ghostty via the kitty protocol; WezTerm, Windows Terminal 1.22+, iTerm2, foot and Konsole via Sixel). Everywhere else it falls back to colored ASCII art or sharp half-block pixels. Press `i` to cycle `auto` / `ascii` / `blocks` / `off`.
+- **Album art in the terminal**: the playing song's official album cover (looked up on iTunes, then Deezer; never a YouTube video frame), also embedded in downloads. On terminals with a graphics protocol it is drawn as a real image (kitty and Ghostty via the kitty protocol; WezTerm, Windows Terminal 1.22+, iTerm2, foot and Konsole via Sixel). Everywhere else it falls back to colored ASCII art or sharp half-block pixels. Press `i` to cycle `auto` / `ascii` / `blocks` / `off`.
 - **Home that knows you**: "Jump back in", "Your most played" and "Because you played ..." (suggestions based on your latest song) sit above YouTube's own shelves, built from your listening history.
 - **Copy to clipboard**: `y` copies a link to the highlighted (or playing) song, album, artist or playlist, or the lyrics when you are on the Lyrics tab. `Y` always copies the lyrics (without timestamps).
 - **Audio visualizer** in the player: the real spectrum of the playing song, in sync with playback. Pick bars, mirror or line, and theme, rainbow, fire or mono colours (`v` / `V`, or Settings).
@@ -150,6 +150,7 @@ are not implemented.
 - The session file (`session.json`) is saved every 15 seconds and on quit.
 - The audio cache is capped by `max_cache_size_mb` in `config.json` (default 2048); the least recently played songs
   are removed first. Set `cache_enabled` to `false` to keep only the current and next few songs.
+- Covers are found by sending the song's title and artist to the iTunes and Deezer search APIs. Set `online_covers` to `false` in `config.json` to turn that off (YouTube Music's own square album art is used instead).
 - `download_format` in `config.json` (`mp3`, `m4a` or `flac`) sets the default for `d` and `tunebox download`.
 - Shuffle plays every song in the queue once (in random order) before the queue ends, or starts a new random
   round with repeat set to "all". Up Next shows the real upcoming order.
