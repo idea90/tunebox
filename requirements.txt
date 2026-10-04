@@ -9,3 +9,4 @@ mutagen>=1.47.0
 Pillow>=12.1
 textual-image>=0.14
 numpy>=1.24
+dbus-next>=0.2.3; sys_platform == "linux"

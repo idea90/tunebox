@@ -23,6 +23,9 @@ def isolate_side_effects(request, monkeypatch):
         monkeypatch.setattr(session, "restore", lambda player: False)
     if "real_mediakeys" not in request.keywords:
         monkeypatch.setattr(mediakeys, "start", lambda handler: False)
+    if "real_mpris" not in request.keywords:                 # never claim a name on the developer's D-Bus
+        from tunebox.core import mpris
+        monkeypatch.setattr(mpris, "start", lambda handler, position_fn, on_ready=None: False)
 
 
 @pytest.fixture(autouse=True)

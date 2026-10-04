@@ -152,13 +152,21 @@ class Player(QueueMixin):
         self._notify()
         return self.shuffle
 
-    def cycle_repeat(self) -> str:
-        idx = REPEAT_MODES.index(self.repeat_mode) if self.repeat_mode in REPEAT_MODES else 0
-        self.repeat_mode = REPEAT_MODES[(idx + 1) % len(REPEAT_MODES)]
+    def set_shuffle(self, on: bool) -> bool:
+        return self.toggle_shuffle() if bool(on) != self.shuffle else self.shuffle
+
+    def set_repeat(self, mode: str) -> str:
+        if mode not in REPEAT_MODES:
+            return self.repeat_mode
+        self.repeat_mode = mode
         config.set("repeat_mode", self.repeat_mode)
         self._rearm()                          # "one" vs "off/all" changes what plays next
         self._notify()
         return self.repeat_mode
+
+    def cycle_repeat(self) -> str:
+        idx = REPEAT_MODES.index(self.repeat_mode) if self.repeat_mode in REPEAT_MODES else 0
+        return self.set_repeat(REPEAT_MODES[(idx + 1) % len(REPEAT_MODES)])
 
     def toggle_autoplay(self) -> bool:
         self.autoplay = not self.autoplay
