@@ -5,6 +5,15 @@ Search, stream, queue, favorite, see synced lyrics, and download tracks, all wit
 
 Built on [Textual](https://textual.textualize.io/), `yt-dlp`, `ytmusicapi` and `pygame.mixer`.
 
+![Home](docs/screenshots/home.png)
+
+<p>
+<img src="docs/screenshots/lyrics.png" width="49%" alt="Synced lyrics">
+<img src="docs/screenshots/settings.png" width="49%" alt="Settings">
+</p>
+
+(Screenshots use demo data. On terminals with a graphics protocol the cover is drawn as a real image.)
+
 ---
 
 ## Features
@@ -29,7 +38,7 @@ Built on [Textual](https://textual.textualize.io/), `yt-dlp`, `ytmusicapi` and `
 - **Live, synced lyrics** from [LRCLIB](https://lrclib.net) with a YouTube Music fallback. Click a line to jump to it.
 - **Library** in a local SQLite database: favorites, custom playlists, history, most played.
 - **Downloads** to MP3 / M4A / FLAC with title, artist, album and cover art tags embedded.
-- **Four themes**: `metro_dark`, `neon_purple`, `emerald`, `cyberpunk`.
+- **Four themes**: `metro_dark`, `neon_purple`, `emerald`, `cyberpunk`. Colour is kept for what matters: the playing song, the active tab, the selection, hearts. Lists show an Album column on wide terminals, tabs shorten themselves on narrow ones, and empty tabs say what to do next.
 - **One-shot commands** (`play`, `search`, `lyrics`, `download`, `charts`, ...) that don't open the app.
 
 ## Install

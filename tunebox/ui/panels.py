@@ -1,6 +1,8 @@
 """Container widgets the app's layout is built from: the player card, the lyrics pane and the tab strip."""
 from typing import Any, Dict, List
 
+from rich.table import Table
+from rich.text import Text
 from textual import events
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
@@ -11,6 +13,35 @@ from . import inline
 from .components import HEART_OFF, PLAY
 from .visualizer import Visualizer
 from .widgets import ArtView, Chip, SeekBar, VolumeBar
+
+
+class TopBar(Static):
+    """Slim title bar: the brand on the left; sleep timer and account state on the right."""
+
+    def __init__(self, **kwargs):
+        super().__init__("", **kwargs)
+        self._shown = None
+
+    def show(self, signed_in: bool, sleep_minutes: int) -> None:
+        th = self.app.current_theme
+        state = (signed_in, sleep_minutes, th.primary)
+        if state == self._shown:
+            return
+        self._shown = state
+        left = Text()
+        left.append("\u266a ", style=f"bold {th.primary}")
+        left.append("TUNEBOX", style=f"bold {th.foreground}")
+        left.append("   YouTube Music", style="#7d7d8a")
+        right = Text()
+        if sleep_minutes:
+            right.append(f"sleep {sleep_minutes}m   ", style=th.accent)
+        right.append("\u25cf ", style=th.success if signed_in else "#7d7d8a")
+        right.append("signed in" if signed_in else "not signed in", style="#7d7d8a")
+        grid = Table.grid(expand=True)
+        grid.add_column()
+        grid.add_column(justify="right")
+        grid.add_row(left, right)
+        self.update(grid)
 
 
 class NowPlaying(Vertical):
@@ -25,6 +56,7 @@ class NowPlaying(Vertical):
         yield Visualizer(id="viz")
         yield Static("Nothing playing", id="np-title")
         yield Static("Select a song to start", id="np-artist")
+        yield Static("", id="np-status")
         yield SeekBar(id="seek")
         with Horizontal(classes="ctl"):
             yield Chip("◀◀", "prev", id="c-prev")

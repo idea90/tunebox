@@ -25,6 +25,7 @@ class SettingsMixin:
         self.theme = nxt
         config.set("theme", nxt)
         self.say(f"Theme: {nxt}")
+        self._sig = None             # repaint the lists: their cell colours come from the theme
         self.tick()
 
     def action_clear_cache(self) -> None:

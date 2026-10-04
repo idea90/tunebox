@@ -409,4 +409,5 @@ async def test_unknown_duration_shows_dashes_not_a_fake_zero(monkeypatch):
         await ready(pilot, app)
         table = app.query_one("#t-home", TrackTable)
         assert await wait_for(pilot, lambda: table.row_count == 3)
-        assert table.get_cell_at((1, 3)).plain == "--:--" and table.get_cell_at((2, 3)).plain == "3:00"
+        time_col = [str(c.label) for c in table.ordered_columns].index("Time")      # shifts when the Album column shows
+        assert table.get_cell_at((1, time_col)).plain == "--:--" and table.get_cell_at((2, time_col)).plain == "3:00"
