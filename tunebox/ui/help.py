@@ -48,6 +48,7 @@ SECTIONS: List[Tuple[str, List[Entry]]] = [
     ("Songs, queue and library", [
         Entry(("f",), "Favorite / unfavorite the playing song"),
         Entry(("d",), "Download the playing song"),
+        Entry(("D",), "Download a whole playlist or album (open its page, or highlight it), the queue or a library list"),
         Entry(("P",), "Add the highlighted (or playing) song to a playlist"),
         Entry(("N",), "Play the highlighted (or playing) song next"),
         Entry(("E",), "Add the highlighted (or playing) song to the end of the queue"),

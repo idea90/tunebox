@@ -23,7 +23,7 @@ from ..core.player import player
 from . import inline
 from .constants import SEARCH_FILTERS
 from .mixins import (
-    ArtMixin, ClipboardMixin, DataMixin, HelpersMixin, LibraryMixin, LyricsMixin, NavigationMixin,
+    ArtMixin, ClipboardMixin, DataMixin, DownloadsMixin, HelpersMixin, LibraryMixin, LyricsMixin, NavigationMixin,
     PlaybackMixin, RefreshMixin, RemoteMixin, SettingsMixin, VizMixin,
 )
 from .panels import AppTabs, LyricsView, NowPlaying, TopBar
@@ -33,7 +33,7 @@ from .theme import THEMES, TEXTUAL_PALETTES
 from .widgets import Chip, TrackTable
 
 
-class TuneboxApp(HelpersMixin, DataMixin, RefreshMixin, LyricsMixin, ArtMixin, VizMixin, NavigationMixin,
+class TuneboxApp(HelpersMixin, DataMixin, DownloadsMixin, RefreshMixin, LyricsMixin, ArtMixin, VizMixin, NavigationMixin,
                  PlaybackMixin, LibraryMixin, ClipboardMixin, SettingsMixin, RemoteMixin, App):
     TITLE = "TUNEBOX"
     SUB_TITLE = "YouTube Music"
@@ -53,6 +53,7 @@ class TuneboxApp(HelpersMixin, DataMixin, RefreshMixin, LyricsMixin, ArtMixin, V
         Binding("r", "repeat", "Repeat"),
         Binding("a", "autoplay", "Auto"),
         Binding("d", "download", "Download"),
+        Binding("D", "download_all", "Download all", show=False),
         Binding("q", "quit_app", "Quit"),
         Binding("question_mark", "help", "Help"),
         Binding("plus,equals_sign", "vol(5)", "Vol+", show=False),
@@ -114,6 +115,7 @@ class TuneboxApp(HelpersMixin, DataMixin, RefreshMixin, LyricsMixin, ArtMixin, V
         self.feed_items: List[Dict[str, Any]] = []      # YouTube's own Home shelves
         self._because: Optional[Dict[str, Any]] = None  # "Because you played X" shelf
         self._because_seed: Optional[str] = None
+        self.batch: Optional[Dict[str, Any]] = None       # the whole-list download in progress, if any
         self._saved = False      # session already written by an explicit quit (stop() zeroes the position)
         self._sig = None
         self._ui_thread = threading.get_ident()
@@ -172,6 +174,7 @@ class TuneboxApp(HelpersMixin, DataMixin, RefreshMixin, LyricsMixin, ArtMixin, V
                                 yield Chip("", "toggle_gapless", id="s-gapless", classes="setting")
                             yield Static("STORAGE AND ACCOUNT", classes="settings-title")
                             with Grid(classes="settings-grid"):
+                                yield Chip("", "cycle_download_format", id="s-dlfmt", classes="setting")
                                 yield Chip("Clear audio cache", "clear_cache", id="s-cache", classes="setting")
                             yield Static("", id="s-usage")
                             yield Static("", id="s-account")
@@ -182,6 +185,7 @@ class TuneboxApp(HelpersMixin, DataMixin, RefreshMixin, LyricsMixin, ArtMixin, V
                         with Horizontal(id="d-actions"):
                             yield Chip("Play all", "play_all", id="d-play")
                             yield Chip("Shuffle", "shuffle_play", id="d-shuffle")
+                            yield Chip("Download all", "download_all", id="d-download")
                             yield Chip("Back", "detail_back", id="d-back")
                         yield TrackTable(kind="detail", id="t-detail")
                         yield Static("Albums & singles", id="d-albums-label")

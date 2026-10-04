@@ -6,6 +6,7 @@ from textual.css.query import NoMatches
 from textual.widgets import Static
 
 from ...config import CACHE_DIR, DOWNLOADS_DIR, config
+from ...core import downloader
 from ...core.database import get_downloads, get_favorite_ids
 from ...core.player import player
 from ...core.ytmusic import yt_client
@@ -55,7 +56,8 @@ class RefreshMixin:
             title.update(Text("Nothing playing", justify="center"))
             artist.update(Text("Select a song to start", justify="center"))
             status_line.update("")
-        self.query_one("#topbar", TopBar).show(bool(yt_client.authenticated), player.sleep_remaining())
+        self.query_one("#topbar", TopBar).show(bool(yt_client.authenticated), player.sleep_remaining(),
+                                               self._batch_summary())
 
         self.query_one("#seek", SeekBar).refresh()
         self.query_one("#vol", VolumeBar).refresh()
@@ -85,6 +87,7 @@ class RefreshMixin:
         self.query_one("#s-sleep", Chip).update(f"Sleep timer: {f'{mins} min left' if mins else 'off'}")
         self.query_one("#s-norm", Chip).update(f"Normalize volume: {'ON' if config.get('normalize_volume', True) else 'OFF'}")
         self.query_one("#s-gapless", Chip).update(f"Gapless playback: {'ON' if config.get('gapless', True) else 'OFF'}")
+        self.query_one("#s-dlfmt", Chip).update(f"Download format: {downloader.download_format().upper()}")
         self.query_one("#s-account", Static).update(
             "Account: signed in to YouTube Music" if yt_client.authenticated
             else "Account: anonymous. Run `tunebox login` to use your liked songs and playlists.")

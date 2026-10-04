@@ -135,7 +135,7 @@ class DataMixin:
     def _set_detail(self, bid: str, data: Dict[str, Any], sub: str) -> None:
         if self.detail.get("id") != bid:      # the user already opened something else
             return
-        self.detail.update(tracks=data.get("tracks", []), albums=data.get("albums", []))
+        self.detail.update(tracks=data.get("tracks", []), albums=data.get("albums", []), title=data.get("title") or "")
         self.query_one("#d-title", Static).update(Text(data.get("title") or "Details"))
         self.query_one("#d-sub", Static).update(Text(sub))
         self._sig = None

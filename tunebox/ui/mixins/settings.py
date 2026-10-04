@@ -1,6 +1,7 @@
-"""Settings tab actions: theme, volume normalization, gapless, audio cache."""
+"""Settings tab actions: theme, volume normalization, gapless, download format, audio cache."""
 
 from ...config import CACHE_DIR, config
+from ...core import downloader
 from ..theme import THEMES
 
 
@@ -26,6 +27,14 @@ class SettingsMixin:
         config.set("theme", nxt)
         self.say(f"Theme: {nxt}")
         self._sig = None             # repaint the lists: their cell colours come from the theme
+        self.tick()
+
+    def action_cycle_download_format(self) -> None:
+        formats = list(downloader.FORMATS)
+        cur = downloader.download_format()
+        nxt = formats[(formats.index(cur) + 1) % len(formats)]
+        config.set("download_format", nxt)
+        self.say(f"Downloads will be saved as {nxt.upper()}")
         self.tick()
 
     def action_clear_cache(self) -> None:

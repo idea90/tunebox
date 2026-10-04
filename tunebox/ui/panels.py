@@ -22,9 +22,9 @@ class TopBar(Static):
         super().__init__("", **kwargs)
         self._shown = None
 
-    def show(self, signed_in: bool, sleep_minutes: int) -> None:
+    def show(self, signed_in: bool, sleep_minutes: int, downloading: str = "") -> None:
         th = self.app.current_theme
-        state = (signed_in, sleep_minutes, th.primary)
+        state = (signed_in, sleep_minutes, th.primary, downloading)
         if state == self._shown:
             return
         self._shown = state
@@ -33,6 +33,8 @@ class TopBar(Static):
         left.append("TUNEBOX", style=f"bold {th.foreground}")
         left.append("   YouTube Music", style="#7d7d8a")
         right = Text()
+        if downloading:
+            right.append(f"\u2193 {downloading}   ", style=f"bold {th.primary}")
         if sleep_minutes:
             right.append(f"sleep {sleep_minutes}m   ", style=th.accent)
         right.append("\u25cf ", style=th.success if signed_in else "#7d7d8a")

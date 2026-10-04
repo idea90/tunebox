@@ -15,6 +15,9 @@ if sys.platform == "win32":
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 
 import argparse
+import re
+import signal
+import threading
 import time
 from typing import Optional
 from rich.console import Console
@@ -24,8 +27,8 @@ from . import __version__
 from .core.ytmusic import yt_client
 from .core.lyrics import get_lyrics
 from .core.downloader import download_track_file
-from .core import downloader
-from .core.database import get_favorites, get_history
+from .core import batch, downloader
+from .core.database import get_favorites, get_history, get_playlist as get_local_playlist, get_playlists
 from .ui.theme import get_theme
 from .ui.components import render_track_table, render_lyrics_panel, format_seconds, PLAY, PAUSE
 
@@ -156,6 +159,86 @@ def download_cli(query: str, fmt: str = "mp3"):
         console.print(f"[{t['error']}]Download failed: {escape(downloader.last_error or 'unknown error')}[/{t['error']}]")
 
 
+def resolve_playlist_source(source: str):
+    """What a `download-playlist` argument points at: ("local", name) | ("album", browse id) | ("playlist", id).
+
+    Accepts the name of one of your own playlists (checked first), a music.youtube.com / youtube.com playlist
+    link, or a bare playlist or album id.
+    """
+    source = source.strip()
+    for pl in get_playlists():
+        if pl["title"].lower() == source.lower():
+            return "local", pl["id"]
+    found = re.search(r"[?&]list=([A-Za-z0-9_-]+)", source)
+    ident = found.group(1) if found else source
+    if ident.startswith("VL"):
+        ident = ident[2:]
+    return ("album", ident) if ident.startswith("MPRE") else ("playlist", ident)
+
+
+def download_playlist_cli(source: str, fmt: str = "mp3", assume_yes: bool = False):
+    """Download every song of a playlist or album, or of one of your own playlists."""
+    t = get_theme()
+    kind, ident = resolve_playlist_source(source)
+    console.print(f"[{t['dim']}]Fetching the playlist...[/{t['dim']}]")
+    if kind == "local":
+        data = get_local_playlist(ident) or {}
+    elif kind == "album":
+        data = yt_client.get_album(ident)
+    else:
+        data = yt_client.get_playlist(ident, limit=None)
+    tracks, title = data.get("tracks", []), data.get("title") or "Playlist"
+    if not tracks:
+        console.print(f"[{t['error']}]Nothing found{': ' + escape(yt_client.last_error) if yt_client.last_error else ''}. "
+                      f"Check the link or id (private playlists need `tunebox login`).[/{t['error']}]")
+        return
+
+    todo, skipped, unavailable = batch.plan(tracks, fmt)
+    console.print(f"[bold white]{escape(title)}[/bold white]: {len(todo)} to download as {fmt.upper()}"
+                  + (f", {skipped} already downloaded" if skipped else "")
+                  + (f", {unavailable} unavailable" if unavailable else ""))
+    if not todo:
+        console.print(f"[{t['success']}]Nothing to do.[/{t['success']}]")
+        return
+    if not assume_yes:
+        if not sys.stdin.isatty():
+            console.print(f"[{t['error']}]Not a terminal: add --yes to start without asking.[/{t['error']}]")
+            return
+        if input("Start? [y/N] ").strip().lower() not in ("y", "yes"):
+            console.print("Cancelled.")
+            return
+
+    cancel = threading.Event()
+
+    def stop_after_this_song(signum, frame):
+        cancel.set()
+        signal.signal(signal.SIGINT, signal.SIG_DFL)          # a second Ctrl+C quits at once
+        console.print(f"\n[{t['dim']}]Stopping after this song (Ctrl+C again to quit now)...[/{t['dim']}]")
+
+    def show(event: str, done: int, total: int, track, detail: str) -> None:
+        name = escape(f"{track.get('artist', '')} - {track.get('title', '')}")
+        if event == "start":
+            console.print(f"[{t['dim']}]({done + 1}/{total})[/{t['dim']}] {name}...")
+        elif event == "failed":
+            console.print(f"  [{t['error']}]\u2718 failed:[/{t['error']}] {escape(detail)}")
+
+    previous = signal.signal(signal.SIGINT, stop_after_this_song)
+    try:
+        result = batch.download_tracks(tracks, fmt, subfolder=title, on_progress=show, cancel=cancel)
+    finally:
+        signal.signal(signal.SIGINT, previous)
+
+    got = len(result.downloaded)
+    if result.cancelled:
+        console.print(f"[{t['error']}]Stopped:[/{t['error']}] {got} downloaded. Run the same command to continue.")
+    elif result.failed:
+        console.print(f"[{t['error']}]Done with problems:[/{t['error']}] {got} downloaded, {len(result.failed)} failed. "
+                      f"Run the same command to retry those.")
+    else:
+        console.print(f"[{t['success']}]\u2714 Downloaded {got} song{'s' if got != 1 else ''}[/{t['success']}] "
+                      f"[bold white]{escape(title)}[/bold white]")
+
+
 def lyrics_cli(query: str):
     """Fetch and print lyrics."""
     t = get_theme()
@@ -262,6 +345,12 @@ def main():
     dl_p.add_argument("-f", "--format", default=None, choices=["mp3", "m4a", "flac"],
                       help="Audio format (default: download_format in config.json, else mp3)")
 
+    pl_p = subparsers.add_parser("download-playlist", help="Download a whole playlist or album")
+    pl_p.add_argument("source", type=str, help="playlist or album link or id, or the name of one of your own playlists")
+    pl_p.add_argument("-f", "--format", default=None, choices=["mp3", "m4a", "flac"],
+                      help="Audio format (default: download_format in config.json, else mp3)")
+    pl_p.add_argument("-y", "--yes", action="store_true", help="start without asking")
+
     lyr_p = subparsers.add_parser("lyrics", help="Get song lyrics")
     lyr_p.add_argument("query", type=str, help="Song title or artist")
 
@@ -282,6 +371,8 @@ def main():
         search_cli(args.query, filter_type=args.type)
     elif args.command == "download":
         download_cli(args.query, fmt=args.format or downloader.download_format())
+    elif args.command == "download-playlist":
+        download_playlist_cli(args.source, fmt=args.format or downloader.download_format(), assume_yes=args.yes)
     elif args.command == "lyrics":
         lyrics_cli(args.query)
     elif args.command == "charts":

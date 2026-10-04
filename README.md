@@ -37,7 +37,7 @@ Built on [Textual](https://textual.textualize.io/), `yt-dlp`, `ytmusicapi` and `
 - **Audio visualizer** in the player: the real spectrum of the playing song, in sync with playback. Pick bars, mirror or line, and theme, rainbow, fire or mono colours (`v` / `V`, or Settings).
 - **Live, synced lyrics** from [LRCLIB](https://lrclib.net) with a YouTube Music fallback. Click a line to jump to it.
 - **Library** in a local SQLite database: favorites, custom playlists, history, most played.
-- **Downloads** to MP3 / M4A / FLAC with title, artist, album and cover art tags embedded.
+- **Downloads** to MP3 / M4A / FLAC with title, artist, album and cover art tags embedded. Download a **whole playlist or album** in one go (`D`, or `tunebox download-playlist`): one folder per playlist, a progress counter in the top bar, stop any time, and re-running only fetches what is missing.
 - **Four themes**: `metro_dark`, `neon_purple`, `emerald`, `cyberpunk`. Colour is kept for what matters: the playing song, the active tab, the selection, hearts. Lists show an Album column on wide terminals, tabs shorten themselves on narrow ones, and empty tabs say what to do next.
 - **One-shot commands** (`play`, `search`, `lyrics`, `download`, `charts`, ...) that don't open the app.
 
@@ -101,6 +101,7 @@ Scrolling over a list scrolls the list, not the volume.
 | `s` `r` `a` | Shuffle, cycle repeat, toggle autoplay radio |
 | `f` | Favorite the playing song |
 | `d` | Download the playing song |
+| `D` | Download a whole playlist or album (open its page, or highlight it in a list), the queue or a library list. Asks first. Press `D` again to stop |
 | `R` | Start a radio queue from the playing song |
 | `P` | Add the highlighted (or playing) song to a playlist |
 | `N` / `E` | Play the highlighted (or playing) song next / add it to the end of the queue |
@@ -126,6 +127,8 @@ python run.py play "Daft Punk Get Lucky"     # mini-player: Space, +/-, ,/. seek
 python run.py search "The Weeknd"
 python run.py search "Interstellar" -t albums
 python run.py download "Coldplay Yellow" -f mp3
+python run.py download-playlist "https://music.youtube.com/playlist?list=PL..." -f mp3
+python run.py download-playlist "My road trip mix" -y      # one of your own playlists, no question asked
 python run.py lyrics "Queen Bohemian Rhapsody"
 python run.py charts
 python run.py favorites
@@ -179,7 +182,8 @@ are not implemented.
 - The audio cache is capped by `max_cache_size_mb` in `config.json` (default 2048); the least recently played songs
   are removed first. Set `cache_enabled` to `false` to keep only the current and next few songs.
 - Covers are found by sending the song's title and artist to the iTunes and Deezer search APIs. Set `online_covers` to `false` in `config.json` to turn that off (YouTube Music's own square album art is used instead).
-- `download_format` in `config.json` (`mp3`, `m4a` or `flac`) sets the default for `d` and `tunebox download`.
+- `download_format` in `config.json` (`mp3`, `m4a` or `flac`, also in Settings) sets the default for `d`, `D` and the download commands.
+- Whole-playlist downloads go into `downloads/<playlist name>/`. Set `download_playlist_folders` to `false` in `config.json` to keep everything in one folder. Songs already downloaded in that format are skipped, so after a failure or a stop, running it again only fetches the rest. Songs run one at a time, in order.
 - Shuffle plays every song in the queue once (in random order) before the queue ends, or starts a new random
   round with repeat set to "all". Up Next shows the real upcoming order.
 
@@ -219,7 +223,7 @@ tunebox/
     player.py          playback, gapless hand-over, sleep timer
     playqueue.py       queue editing and the shuffle bag (mixed into Player)
     database/          SQLite: connection/schema, favorites, playlists, history, downloads
-    ytmusic.py  downloader.py  lyrics.py  albumart.py  spectrum.py  recommend.py  session.py  share.py  mediakeys.py  mpris.py
+    ytmusic.py  downloader.py  batch.py  lyrics.py  albumart.py  spectrum.py  recommend.py  session.py  share.py  mediakeys.py  mpris.py
   ui/                Textual app
     app.py             app shell: layout, key bindings, lifecycle
     mixins/            app behaviour, one file per feature (data, refresh, lyrics, art, viz,

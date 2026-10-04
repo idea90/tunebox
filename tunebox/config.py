@@ -132,6 +132,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "shuffle": False,
     "download_format": "mp3",
     "download_dir": str(DOWNLOADS_DIR),
+    "download_playlist_folders": True,   # whole-playlist / album downloads go into a folder named after it
     "cookie_file": "",
     "normalize_volume": True,   # loudness-normalize audio as it is cached/downloaded
     "gapless": True,
