@@ -18,13 +18,13 @@ from textual.theme import Theme
 from textual.widgets import Footer, Header, Input, Select, Static, TabPane
 
 from ..config import config
-from ..core import mediakeys, session
+from ..core import mediakeys, mpris, session
 from ..core.player import player
 from . import inline
 from .constants import SEARCH_FILTERS
 from .mixins import (
     ArtMixin, ClipboardMixin, DataMixin, HelpersMixin, LibraryMixin, LyricsMixin, NavigationMixin,
-    PlaybackMixin, RefreshMixin, SettingsMixin, VizMixin,
+    PlaybackMixin, RefreshMixin, RemoteMixin, SettingsMixin, VizMixin,
 )
 from .panels import AppTabs, LyricsView, NowPlaying
 from .styles import APP_CSS
@@ -34,7 +34,7 @@ from .widgets import Chip, TrackTable
 
 
 class TuneboxApp(HelpersMixin, DataMixin, RefreshMixin, LyricsMixin, ArtMixin, VizMixin, NavigationMixin,
-                 PlaybackMixin, LibraryMixin, ClipboardMixin, SettingsMixin, App):
+                 PlaybackMixin, LibraryMixin, ClipboardMixin, SettingsMixin, RemoteMixin, App):
     TITLE = "TUNEBOX"
     SUB_TITLE = "YouTube Music"
     ENABLE_COMMAND_PALETTE = False
@@ -199,6 +199,7 @@ class TuneboxApp(HelpersMixin, DataMixin, RefreshMixin, LyricsMixin, ArtMixin, V
             self.say("Restored your last session - press Space to resume.")
         if mediakeys.start(lambda action: self._ui(self._media_action, action)):
             self.say("Media keys enabled.")
+        self._start_mpris()
         self.set_interval(15, lambda: session.save(player))   # so a crash loses at most 15 s
         if config.load_error:
             self.say(config.load_error, True)
@@ -213,6 +214,7 @@ class TuneboxApp(HelpersMixin, DataMixin, RefreshMixin, LyricsMixin, ArtMixin, V
         if not self._saved:
             session.save(player)
         mediakeys.stop()
+        mpris.stop()
 
     def _media_action(self, action: str) -> None:
         if action == "play_pause":

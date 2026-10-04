@@ -5,7 +5,7 @@ Global media-key support (play/pause, next, previous, stop) via the optional `py
 
 Works on Windows and macOS, and on Linux under X11. Not available on Wayland or without
 `pynput`; in that case start() returns False and the app simply runs without media keys.
-Now-playing overlays (Windows SMTC, Linux MPRIS) are not implemented.
+The Linux desktop's now-playing widgets (MPRIS) are in core/mpris.py; Windows SMTC and macOS Now Playing are not implemented.
 """
 import threading
 from typing import Callable, Dict, Optional

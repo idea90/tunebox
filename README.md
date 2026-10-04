@@ -19,6 +19,7 @@ Built on [Textual](https://textual.textualize.io/), `yt-dlp`, `ytmusicapi` and `
 - **Queue editing**: play next, add to queue, reorder, remove, and save the queue as a playlist (`S`).
 - **Your YouTube Music account** (optional): liked songs and your playlists, via `tunebox login`.
 - **Media keys** (optional): hardware play/pause/next/previous, via `pip install "tunebox[media]"`.
+- **Desktop media controls on Linux (MPRIS)**: the song, artist, cover and play state show in your desktop's media widget, lock screen, KDE Connect and `playerctl`, and their buttons, seek bar and volume control Tunebox.
 - **Built-in help**: press `?` for every shortcut, with a filter box.
 - **Mouse and keyboard**: click a song to play it, click the seek bar, click the heart, click the control chips, scroll over the player card for volume.
 - **Album art in the terminal**: the playing song's official album cover (looked up on iTunes, then Deezer; never a YouTube video frame), also embedded in downloads. On terminals with a graphics protocol it is drawn as a real image (kitty and Ghostty via the kitty protocol; WezTerm, Windows Terminal 1.22+, iTerm2, foot and Konsole via Sixel). Everywhere else it falls back to colored ASCII art or sharp half-block pixels. Press `i` to cycle `auto` / `ascii` / `blocks` / `off`.
@@ -137,7 +138,22 @@ pip install "tunebox[media]"
 ```
 
 Play/pause, next, previous and stop keys then control the app even when the terminal isn't focused. This works on
-Windows, macOS and Linux under X11 (not Wayland). System "now playing" overlays (Windows media flyout, Linux MPRIS)
+Windows, macOS and Linux under X11 (not Wayland). The Windows media flyout and macOS Now Playing are not implemented.
+
+### Linux: MPRIS
+
+On Linux Tunebox also registers as an MPRIS player (`org.mpris.MediaPlayer2.tunebox`) on the D-Bus session bus, so it
+works on Wayland too. GNOME, KDE and most other desktops then show what is playing, with its cover, in their media
+widget and lock screen, and the buttons, seek bar, volume, shuffle and repeat there control Tunebox. It also works
+with `playerctl` and KDE Connect:
+
+```bash
+playerctl -p tunebox play-pause
+playerctl -p tunebox metadata --format '{{artist}} - {{title}}'
+```
+
+It needs the small pure-Python `dbus-next` package (installed with `pip install -r requirements.txt` on Linux) and a
+session bus; without them Tunebox just runs without it. Playlists as a track list, `OpenUri` and raising the window
 are not implemented.
 
 ## Notes and limits
@@ -169,7 +185,7 @@ tries again next time. The old `METROLIST_HOME` and `METROLIST_NO_GRAPHICS` vari
 
 Everything lives in `~/.tunebox` (override with the `TUNEBOX_HOME` environment variable):
 `config.json`, `tunebox.db`, `session.json`, `ytmusic_auth.json` (if signed in), `cache/` (audio cache), `downloads/`,
-`covers/` and `cover_lookup.json` (album covers and which cover belongs to which song, so seen songs show their cover instantly and offline; at most 200 images, safe to delete).
+`covers/` and `cover_lookup.json` (album covers and which cover belongs to which song, so seen songs show their cover instantly and offline; at most 200 images, safe to delete), `mpris-art/` (the last 10 covers as square JPEGs for the desktop's media widget).
 Clear the audio cache from Settings.
 
 For age-restricted or region-locked tracks, set `cookie_file` in `config.json` to a Netscape-format
@@ -194,7 +210,7 @@ tunebox/
     player.py          playback, gapless hand-over, sleep timer
     playqueue.py       queue editing and the shuffle bag (mixed into Player)
     database/          SQLite: connection/schema, favorites, playlists, history, downloads
-    ytmusic.py  downloader.py  lyrics.py  albumart.py  spectrum.py  recommend.py  session.py  share.py  mediakeys.py
+    ytmusic.py  downloader.py  lyrics.py  albumart.py  spectrum.py  recommend.py  session.py  share.py  mediakeys.py  mpris.py
   ui/                Textual app
     app.py             app shell: layout, key bindings, lifecycle
     mixins/            app behaviour, one file per feature (data, refresh, lyrics, art, viz,

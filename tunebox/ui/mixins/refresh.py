@@ -19,6 +19,7 @@ class RefreshMixin:
 
     def tick(self) -> None:
         """Cheap UI refresh: runs twice a second and on every player event."""
+        self._mpris_sync()
         try:
             self._refresh_now_playing()
             self._refresh_lyrics()
