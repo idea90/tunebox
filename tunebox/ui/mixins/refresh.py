@@ -11,6 +11,7 @@ from ...core.player import player
 from ...core.ytmusic import yt_client
 from ..components import HEART_OFF, HEART_ON, PAUSE, PLAY
 from ..constants import LIB_TABS
+from ..panels import TopBar
 from ..widgets import Chip, SeekBar, TrackTable, VolumeBar
 
 
@@ -38,18 +39,23 @@ class RefreshMixin:
         tr = player.current_track
         title = self.query_one("#np-title", Static)
         artist = self.query_one("#np-artist", Static)
+        status_line = self.query_one("#np-status", Static)
         if tr:
             status = "Loading..." if player.is_loading else ("Paused" if player.is_paused else
                                                               ("Playing" if player.is_playing else "Stopped"))
-            title.update(Text(tr.get("title", "Unknown"), no_wrap=True, overflow="ellipsis"))
+            glyph = PLAY if status == "Playing" else (PAUSE if status == "Paused" else "\u25cf")
+            title.update(Text(tr.get("title", "Unknown"), no_wrap=True, overflow="ellipsis", justify="center"))
             album = tr.get("album")
             album_name = album.get("name") if isinstance(album, dict) else (album or "")
-            sub = " - ".join(x for x in (tr.get("artist"), album_name) if x)
-            sleep = f" | sleep {player.sleep_remaining()}m" if player.sleep_deadline else ""
-            artist.update(Text(f"{sub}  [{status}{sleep}]" if sub else f"[{status}{sleep}]", no_wrap=True, overflow="ellipsis"))
+            sub = "  \u00b7  ".join(x for x in (tr.get("artist"), album_name) if x)
+            artist.update(Text(sub, no_wrap=True, overflow="ellipsis", justify="center"))
+            sleep = f"   sleep {player.sleep_remaining()}m" if player.sleep_deadline else ""
+            status_line.update(Text(f"{glyph} {status}{sleep}", justify="center"))
         else:
-            title.update("Nothing playing")
-            artist.update("Select a song to start")
+            title.update(Text("Nothing playing", justify="center"))
+            artist.update(Text("Select a song to start", justify="center"))
+            status_line.update("")
+        self.query_one("#topbar", TopBar).show(bool(yt_client.authenticated), player.sleep_remaining())
 
         self.query_one("#seek", SeekBar).refresh()
         self.query_one("#vol", VolumeBar).refresh()
@@ -104,15 +110,22 @@ class RefreshMixin:
         q = list(player.queue)
         qi = player.queue_index if player.is_playing or player.is_paused else None
 
+        self._show_list("home", self.home_items, self._home_hint())
         self.query_one("#t-home", TrackTable).sync(self.home_items, favs, vid, playing)
+        self._show_list("search", self.search_items, self._search_hint())
         self.query_one("#t-search", TrackTable).sync(self.search_items, favs, vid, playing)
+        self._show_list("queue", q, "The queue is empty.\n\nPlay a song, or press E on one to add it.")
         self.query_one("#t-queue", TrackTable).sync(q, favs, vid, playing, cur_idx=qi)
         upnext = player.upcoming(8)
         self.query_one("#t-upnext", TrackTable).sync(upnext, favs, None, playing, cur_idx=-1)
         if self.active_tab == "library":
-            self.query_one("#t-library", TrackTable).sync(self._library_items(), favs, vid, playing)
+            items = self._library_items()
+            self._show_list("library", items, self._library_hint())
+            self.query_one("#t-library", TrackTable).sync(items, favs, vid, playing)
         elif self.active_tab == "downloads":
-            self.query_one("#t-downloads", TrackTable).sync(get_downloads(), favs, vid, playing)
+            items = get_downloads()
+            self._show_list("downloads", items, "No downloads yet.\n\nPress d on a song to save it as a file.")
+            self.query_one("#t-downloads", TrackTable).sync(items, favs, vid, playing)
         elif self.active_tab == "detail":
             d = self.detail
             self.query_one("#t-detail", TrackTable).sync(d.get("tracks", []), favs, vid, playing)
@@ -122,6 +135,41 @@ class RefreshMixin:
             self.query_one("#t-detail-albums").display = bool(albums)
         elif self.active_tab == "settings":
             self._refresh_usage()
+
+    def _show_list(self, name: str, items, hint: str) -> None:
+        """Show the list when it has rows, otherwise a short explanation in its place."""
+        table = self.query_one(f"#t-{name}", TrackTable)
+        note = self.query_one(f"#e-{name}", Static)
+        has_rows = bool(items)
+        table.display = has_rows
+        note.display = not has_rows
+        if not has_rows:
+            note.update(Text(hint, justify="center"))
+
+    def _home_hint(self) -> str:
+        if yt_client.last_error:
+            return f"Couldn't load YouTube Music.\n\n{yt_client.last_error}"
+        return "Loading your music..."
+
+    def _search_hint(self) -> str:
+        if self.search_query:
+            return f"No results for \"{self.search_query}\".\n\nTry another spelling, or a different filter."
+        return "Search YouTube Music\n\nType a song, album or artist above and press Enter."
+
+    def _library_hint(self) -> str:
+        sub = self.library_sub
+        if sub in ("yt_liked", "yt_playlists") and not yt_client.authenticated:
+            return "Sign in to see this.\n\nRun `tunebox login` in a terminal."
+        if sub in self._yt_loading:
+            return "Loading your library..."
+        return {
+            "favorites": "No favorites yet.\n\nPress f on a song to add it.",
+            "playlists": "No playlists yet.\n\nPress P on a song to start one, or S to save the queue.",
+            "history": "Nothing played yet.",
+            "most_played": "Play some songs and your most played will show up here.",
+            "yt_liked": "No liked songs found on your account.",
+            "yt_playlists": "No playlists found on your account.",
+        }.get(sub, "Nothing here yet.")
 
     @staticmethod
     def _dir_stats(path) -> tuple:

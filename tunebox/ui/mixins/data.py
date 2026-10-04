@@ -110,7 +110,9 @@ class DataMixin:
         self.detail = {"id": bid, "kind": typ, "tracks": [], "albums": []}
         self.query_one("#d-title", Static).update(Text(item.get("title") or item.get("name") or typ.title()))
         self.query_one("#d-sub", Static).update("Loading...")
-        self.query_one(TabbedContent).active = "detail"
+        tabs = self.query_one(TabbedContent)
+        tabs.show_tab("detail")
+        tabs.active = "detail"
         self._bg(self._load_detail, typ, bid, item.get("title") or item.get("name") or "")
 
     def _load_detail(self, typ: str, bid: str, title: str = "") -> None:

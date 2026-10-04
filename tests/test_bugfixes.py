@@ -301,7 +301,7 @@ async def test_up_next_shows_the_real_shuffle_order_and_clicks_the_right_song(mi
         assert [t["videoId"] for t in table.items] == [t["videoId"] for t in player.upcoming(8)]
         assert table.items[0] is player._peek_next()[1]
         await pilot.pause(0.3)
-        await pilot.click("#t-upnext", offset=(8, 2))                  # second row
+        await pilot.click("#t-upnext", offset=(8, 1))                  # second row (Up Next has no header row)
         assert await _wait(pilot, lambda: bool(jumped))
         assert player.queue[jumped[0]] is table.items[1]
 

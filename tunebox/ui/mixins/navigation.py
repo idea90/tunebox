@@ -114,6 +114,26 @@ class NavigationMixin:
                     "library": "t-library", "downloads": "t-downloads", "detail": "t-detail"}.get(self.active_tab)
         return self.query_one(f"#{table_id}", TrackTable) if table_id else None
 
+    TAB_NAMES = {"home": "Home", "search": "Search", "queue": "Queue", "lyrics": "Lyrics", "library": "Library",
+                 "downloads": "Downloads", "settings": "Settings", "detail": "Details"}
+    NUMBERED_TABS_MIN_WIDTH = 130      # narrower terminals drop the "1 " ... "8 " so the whole tab strip fits
+
+    def _relabel_tabs(self) -> None:
+        """Tab titles with their shortcut digit when there is room, plain names when there is not."""
+        numbered = self.size.width >= self.NUMBERED_TABS_MIN_WIDTH
+        try:
+            tabs = self.query_one(TabbedContent)
+            for i, (tab_id, name) in enumerate(self.TAB_NAMES.items(), 1):
+                label = f"{i} {name}" if numbered else name
+                tab = tabs.get_tab(tab_id)
+                if str(tab.label) != label:
+                    tab.label = label
+        except Exception:
+            pass                       # not mounted yet, or already closing
+
+    def on_resize(self, event: events.Resize) -> None:
+        self._relabel_tabs()
+
     def action_help(self) -> None:
         if not isinstance(self.screen, HelpScreen):
             self.push_screen(HelpScreen())

@@ -1,6 +1,7 @@
 """Modal screens."""
 from typing import Optional
 
+from rich.console import Group
 from rich.table import Table
 from rich.text import Text
 from textual.app import ComposeResult
@@ -113,16 +114,18 @@ class HelpScreen(ModalScreen[None]):
         groups = filter_sections(query)
         if not groups:
             return Text(f"No shortcut matches \"{query.strip()}\".", style="grey50")
-        table = Table.grid(padding=(0, 2))
-        table.add_column(style="bold", no_wrap=True)
-        table.add_column()
+        parts = []
         for i, (title, rows) in enumerate(groups):
             if i:
-                table.add_row("", "")
-            table.add_row(Text(title, style="bold underline"), "")
+                parts.append(Text(""))
+            parts.append(Text(title.upper(), style="bold"))
+            table = Table.grid(padding=(0, 2))
+            table.add_column(style="bold", no_wrap=True, width=18)     # same width in every group: descriptions line up
+            table.add_column()
             for keys, text in rows:
-                table.add_row(Text(keys, style="bold"), Text(text))
-        return table
+                table.add_row(Text(keys, style="bold"), Text(text, style="#a1a1b0"))
+            parts.append(table)
+        return Group(*parts)
 
     def on_mount(self) -> None:
         self.query_one("#help-filter", Input).focus()

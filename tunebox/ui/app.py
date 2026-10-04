@@ -13,9 +13,9 @@ from typing import Any, Dict, List, Optional
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical
+from textual.containers import Grid, Horizontal, Vertical, VerticalScroll
 from textual.theme import Theme
-from textual.widgets import Footer, Header, Input, Select, Static, TabPane
+from textual.widgets import Footer, Input, Select, Static, TabbedContent, TabPane
 
 from ..config import config
 from ..core import mediakeys, mpris, session
@@ -26,7 +26,7 @@ from .mixins import (
     ArtMixin, ClipboardMixin, DataMixin, HelpersMixin, LibraryMixin, LyricsMixin, NavigationMixin,
     PlaybackMixin, RefreshMixin, RemoteMixin, SettingsMixin, VizMixin,
 )
-from .panels import AppTabs, LyricsView, NowPlaying
+from .panels import AppTabs, LyricsView, NowPlaying, TopBar
 from .styles import APP_CSS
 from .suggest import SearchSuggester
 from .theme import THEMES, TEXTUAL_PALETTES
@@ -122,20 +122,23 @@ class TuneboxApp(HelpersMixin, DataMixin, RefreshMixin, LyricsMixin, ArtMixin, V
     # ------------------------------------------------------------ layout
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=False)
+        yield TopBar(id="topbar")
         with Horizontal(id="body"):
             with Vertical(id="main"):
                 with AppTabs(initial="home", id="tabs"):
                     with TabPane("1 Home", id="home"):
                         yield TrackTable(id="t-home")
+                        yield Static("", id="e-home", classes="empty")
                     with TabPane("2 Search", id="search"):
                         with Horizontal(id="search-bar"):
-                            yield Input(placeholder="Search songs, albums, artists...  (press / to focus, Right arrow accepts a suggestion)",
+                            yield Input(placeholder="Search songs, albums, artists...   ( / to focus,  \u2192 to accept a suggestion )",
                                         id="search-input", suggester=SearchSuggester())
                             yield Select(SEARCH_FILTERS, value="all", allow_blank=False, id="search-filter")
                         yield TrackTable(id="t-search")
+                        yield Static("", id="e-search", classes="empty")
                     with TabPane("3 Queue", id="queue"):
                         yield TrackTable(kind="queue", id="t-queue")
+                        yield Static("", id="e-queue", classes="empty")
                     with TabPane("4 Lyrics", id="lyrics"):
                         yield LyricsView(id="lyrics-view")
                     with TabPane("5 Library", id="library"):
@@ -147,24 +150,32 @@ class TuneboxApp(HelpersMixin, DataMixin, RefreshMixin, LyricsMixin, ArtMixin, V
                             yield Chip("YT Liked", "lib('yt_liked')", id="lib-yt_liked")
                             yield Chip("YT Playlists", "lib('yt_playlists')", id="lib-yt_playlists")
                         yield TrackTable(kind="library", id="t-library")
+                        yield Static("", id="e-library", classes="empty")
                     with TabPane("6 Downloads", id="downloads"):
                         yield TrackTable(kind="downloads", id="t-downloads")
+                        yield Static("", id="e-downloads", classes="empty")
                     with TabPane("7 Settings", id="settings"):
-                        with Vertical(id="settings-box"):
-                            yield Chip("", "cycle_theme", id="s-theme")
-                            yield Chip("", "autoplay", id="s-auto")
-                            yield Chip("", "shuffle", id="s-shuf")
-                            yield Chip("", "repeat", id="s-rep")
-                            yield Chip("", "cycle_art", id="s-art")
-                            yield Chip("", "cycle_viz", id="s-viz")
-                            yield Chip("", "cycle_viz_colors", id="s-vizc")
-                            yield Chip("", "sleep_cycle", id="s-sleep")
-                            yield Chip("", "toggle_normalize", id="s-norm")
-                            yield Chip("", "toggle_gapless", id="s-gapless")
-                            yield Chip("Clear audio cache", "clear_cache", id="s-cache")
+                        with VerticalScroll(id="settings-box"):
+                            yield Static("APPEARANCE", classes="settings-title")
+                            with Grid(classes="settings-grid"):
+                                yield Chip("", "cycle_theme", id="s-theme", classes="setting")
+                                yield Chip("", "cycle_art", id="s-art", classes="setting")
+                                yield Chip("", "cycle_viz", id="s-viz", classes="setting")
+                                yield Chip("", "cycle_viz_colors", id="s-vizc", classes="setting")
+                            yield Static("PLAYBACK", classes="settings-title")
+                            with Grid(classes="settings-grid"):
+                                yield Chip("", "autoplay", id="s-auto", classes="setting")
+                                yield Chip("", "shuffle", id="s-shuf", classes="setting")
+                                yield Chip("", "repeat", id="s-rep", classes="setting")
+                                yield Chip("", "sleep_cycle", id="s-sleep", classes="setting")
+                                yield Chip("", "toggle_normalize", id="s-norm", classes="setting")
+                                yield Chip("", "toggle_gapless", id="s-gapless", classes="setting")
+                            yield Static("STORAGE AND ACCOUNT", classes="settings-title")
+                            with Grid(classes="settings-grid"):
+                                yield Chip("Clear audio cache", "clear_cache", id="s-cache", classes="setting")
                             yield Static("", id="s-usage")
                             yield Static("", id="s-account")
-                            yield Static("Click a button to change it. Volume: scroll over the player card.", id="settings-note")
+                            yield Static("Click a setting to change it. Volume: scroll over the player card.", id="settings-note")
                     with TabPane("8 Details", id="detail"):
                         yield Static("Nothing selected", id="d-title")
                         yield Static("Click an artist, album or playlist to open it here.", id="d-sub")
@@ -177,8 +188,9 @@ class TuneboxApp(HelpersMixin, DataMixin, RefreshMixin, LyricsMixin, ArtMixin, V
                         yield TrackTable(kind="detail", id="t-detail-albums")
             with Vertical(id="sidebar"):
                 yield NowPlaying(id="np")
-                yield Static("Up Next", classes="section")
+                yield Static("UP NEXT", classes="section")
                 yield TrackTable(compact=True, kind="upnext", id="t-upnext")
+                yield Static("LYRICS", id="mini-lyrics-title")
                 yield Static("", id="mini-lyrics")
         yield Footer()
 
@@ -200,6 +212,8 @@ class TuneboxApp(HelpersMixin, DataMixin, RefreshMixin, LyricsMixin, ArtMixin, V
         if mediakeys.start(lambda action: self._ui(self._media_action, action)):
             self.say("Media keys enabled.")
         self._start_mpris()
+        self.call_after_refresh(self._hide_details_tab)
+        self.call_after_refresh(self._relabel_tabs)
         self.set_interval(15, lambda: session.save(player))   # so a crash loses at most 15 s
         if config.load_error:
             self.say(config.load_error, True)
@@ -209,6 +223,15 @@ class TuneboxApp(HelpersMixin, DataMixin, RefreshMixin, LyricsMixin, ArtMixin, V
         self.set_interval(0.5, self.tick)
         self._bg(self._load_home)
         self.call_after_refresh(self.tick)
+
+    def _hide_details_tab(self) -> None:
+        """The Details tab only appears once you open an artist / album / playlist."""
+        try:
+            tabs = self.query_one(TabbedContent)
+            if tabs.active != "detail":
+                tabs.hide_tab("detail")
+        except Exception:
+            pass
 
     def on_unmount(self) -> None:
         if not self._saved:
