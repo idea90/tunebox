@@ -7,6 +7,7 @@ name = "tunebox"
 version = "1.4.1"
 description = "A YouTube Music client for the terminal, with full mouse and keyboard support."
 authors = [{ name = "Tunebox Team" }]
+license = { text = "GPL-3.0-only" }
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
