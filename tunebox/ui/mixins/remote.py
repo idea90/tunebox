@@ -1,6 +1,7 @@
 """Requests from outside the app: desktop media controls (MPRIS) and what the app tells them back."""
 from typing import Any
 
+from ... import termux
 from ...core import mpris
 from ...core.player import player
 
@@ -17,6 +18,10 @@ class RemoteMixin:
                 self._ui(self.say, "Desktop media controls enabled (MPRIS).")
 
         mpris.start(handler, player.get_position, ready)
+
+    def _sync_wake_lock(self) -> None:
+        """Termux: keep the phone awake while music plays or a download runs, so Android doesn't freeze us."""
+        termux.wake_lock(bool((player.is_playing and not player.is_paused) or self.batch))
 
     def _mpris_sync(self) -> None:
         """Tell the desktop what is playing. Cheap: the service only sends what changed."""

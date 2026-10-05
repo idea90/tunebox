@@ -13,6 +13,8 @@ Set TUNEBOX_NO_GRAPHICS=1 to skip detection entirely.
 import os
 from typing import Any, Optional
 
+from .. import termux
+
 _state = {"checked": False, "protocol": None}
 
 
@@ -22,6 +24,8 @@ def detect() -> Optional[str]:
         return _state["protocol"]
     _state["checked"] = True
     if os.environ.get("TUNEBOX_NO_GRAPHICS") or os.environ.get("METROLIST_NO_GRAPHICS"):   # old name still honoured
+        return None
+    if termux.is_termux():             # no graphics protocol there; asking would only slow startup
         return None
     try:
         # textual-image declares pillow>=10.3 but calls Image.get_flattened_data (Pillow 12.1+). With an older

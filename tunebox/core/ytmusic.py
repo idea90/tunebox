@@ -234,10 +234,10 @@ class YTMusicClient:
             fallback = self.search("Top Global Hits", filter_type="songs", limit=20)
             return {"songs": fallback, "videos": [], "artists": []}
 
-    def get_playlist(self, playlist_id: str) -> Dict[str, Any]:
-        """Get playlist tracks and details."""
+    def get_playlist(self, playlist_id: str, limit: Optional[int] = 100) -> Dict[str, Any]:
+        """Get playlist tracks and details. `limit=None` fetches the whole playlist (the default stops at 100)."""
         try:
-            data = self.yt.get_playlist(playlist_id, limit=100)
+            data = self.yt.get_playlist(playlist_id, limit=limit)
             tracks = []
             for item in data.get("tracks", []):
                 if "videoId" in item or "id" in item:

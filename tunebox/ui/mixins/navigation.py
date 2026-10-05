@@ -7,6 +7,7 @@ from textual.widgets import Input, Select, TabbedContent
 
 from ...config import config
 from ...core.player import player
+from ..constants import COMPACT_TAB_NAMES, COMPACT_WIDTH
 from ..screens import HelpScreen
 from ..widgets import TrackTable, is_track
 
@@ -119,11 +120,14 @@ class NavigationMixin:
     NUMBERED_TABS_MIN_WIDTH = 130      # narrower terminals drop the "1 " ... "8 " so the whole tab strip fits
 
     def _relabel_tabs(self) -> None:
-        """Tab titles with their shortcut digit when there is room, plain names when there is not."""
+        """Tab titles with their shortcut digit when there is room, plain names when there is not, short names
+        on a phone."""
         numbered = self.size.width >= self.NUMBERED_TABS_MIN_WIDTH
         try:
             tabs = self.query_one(TabbedContent)
             for i, (tab_id, name) in enumerate(self.TAB_NAMES.items(), 1):
+                if self.size.width < COMPACT_WIDTH:
+                    name = COMPACT_TAB_NAMES[tab_id]
                 label = f"{i} {name}" if numbered else name
                 tab = tabs.get_tab(tab_id)
                 if str(tab.label) != label:
@@ -132,7 +136,34 @@ class NavigationMixin:
             pass                       # not mounted yet, or already closing
 
     def on_resize(self, event: events.Resize) -> None:
+        self._apply_layout()
         self._relabel_tabs()
+
+    def _apply_layout(self) -> None:
+        """Wide terminals: lists on the left, player on the right. Narrow ones (a phone held upright): the lists
+        with a mini player under them, and the full player as its own screen you open with `o` or a tap."""
+        compact = self.size.width < COMPACT_WIDTH
+        self.compact = compact
+        self.set_class(compact, "compact")
+        if not compact:
+            self.player_view = False
+        try:
+            self.query_one("#main").display = not (compact and self.player_view)
+            self.query_one("#sidebar").display = (not compact) or self.player_view
+            self.query_one("#mini").display = compact and not self.player_view
+            self.query_one("#close-player").display = compact
+        except NoMatches:
+            pass                       # not mounted yet, or already closing
+
+    def action_toggle_player(self) -> None:
+        """Small screens: open the full player, or go back to the list."""
+        if not self.compact:
+            return
+        self.player_view = not self.player_view
+        self._apply_layout()
+        self.tick()
+        if not self.player_view:
+            self._focus_active_table()
 
     def action_help(self) -> None:
         if not isinstance(self.screen, HelpScreen):
@@ -149,7 +180,10 @@ class NavigationMixin:
             tabs.active = "search"   # the tab-activated handler focuses the box
 
     def action_focus_table(self) -> None:
-        """Escape: leave the search box, or go back from a detail page."""
+        """Escape: close the full player (small screens), leave the search box, or go back from a detail page."""
+        if self.compact and self.player_view:
+            self.action_toggle_player()
+            return
         if self.active_tab == "detail" and isinstance(self.focused, TrackTable):
             self.action_detail_back()
             return

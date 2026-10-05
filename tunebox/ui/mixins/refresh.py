@@ -6,11 +6,12 @@ from textual.css.query import NoMatches
 from textual.widgets import Static
 
 from ...config import CACHE_DIR, DOWNLOADS_DIR, config
+from ...core import downloader
 from ...core.database import get_downloads, get_favorite_ids
 from ...core.player import player
 from ...core.ytmusic import yt_client
 from ..components import HEART_OFF, HEART_ON, PAUSE, PLAY
-from ..constants import LIB_TABS
+from ..constants import COMPACT_WIDTH, LIB_TABS
 from ..panels import TopBar
 from ..widgets import Chip, SeekBar, TrackTable, VolumeBar
 
@@ -20,7 +21,11 @@ class RefreshMixin:
 
     def tick(self) -> None:
         """Cheap UI refresh: runs twice a second and on every player event."""
+        if (self.size.width < COMPACT_WIDTH) != self.compact:      # the window was resized (a phone was rotated)
+            self._apply_layout()
+            self._relabel_tabs()
         self._mpris_sync()
+        self._sync_wake_lock()
         try:
             self._refresh_now_playing()
             self._refresh_lyrics()
@@ -55,7 +60,9 @@ class RefreshMixin:
             title.update(Text("Nothing playing", justify="center"))
             artist.update(Text("Select a song to start", justify="center"))
             status_line.update("")
-        self.query_one("#topbar", TopBar).show(bool(yt_client.authenticated), player.sleep_remaining())
+        self._refresh_mini(tr)
+        self.query_one("#topbar", TopBar).show(bool(yt_client.authenticated), player.sleep_remaining(),
+                                               self._batch_summary())
 
         self.query_one("#seek", SeekBar).refresh()
         self.query_one("#vol", VolumeBar).refresh()
@@ -85,6 +92,7 @@ class RefreshMixin:
         self.query_one("#s-sleep", Chip).update(f"Sleep timer: {f'{mins} min left' if mins else 'off'}")
         self.query_one("#s-norm", Chip).update(f"Normalize volume: {'ON' if config.get('normalize_volume', True) else 'OFF'}")
         self.query_one("#s-gapless", Chip).update(f"Gapless playback: {'ON' if config.get('gapless', True) else 'OFF'}")
+        self.query_one("#s-dlfmt", Chip).update(f"Download format: {downloader.download_format().upper()}")
         self.query_one("#s-account", Static).update(
             "Account: signed in to YouTube Music" if yt_client.authenticated
             else "Account: anonymous. Run `tunebox login` to use your liked songs and playlists.")
@@ -93,6 +101,26 @@ class RefreshMixin:
             chip.set_class(sub == self.library_sub, "sel")
             if sub.startswith("yt_"):
                 chip.display = yt_client.authenticated
+
+    def _refresh_mini(self, tr) -> None:
+        """The small-screen player strip: song, progress, play / pause and heart."""
+        now = Text(no_wrap=True, overflow="ellipsis")
+        if tr:
+            playing = player.is_playing and not player.is_paused
+            now.append(f"{PAUSE if playing else PLAY}  ", style=f"bold {self.current_theme.primary}")
+            now.append(tr.get("title", "Unknown"), style="bold")
+            if tr.get("artist"):
+                now.append(f"   {tr['artist']}", style="#a1a1b0")
+        else:
+            now.append("Nothing playing", style="#6b6b78")
+        self.query_one("#mini-now", Static).update(now)
+        self.query_one("#mini-seek").refresh()
+        playing = player.is_playing and not player.is_paused
+        self.query_one("#m-play", Chip).update(PAUSE if playing else PLAY)
+        fav = bool(tr and tr.get("videoId") in get_favorite_ids())
+        fav_chip = self.query_one("#m-fav", Chip)
+        fav_chip.update(HEART_ON if fav else HEART_OFF)
+        fav_chip.set_class(fav, "on")
 
     def refresh_tables(self) -> None:
         try:

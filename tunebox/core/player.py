@@ -1,29 +1,27 @@
 """
 Audio Player & Queue Manager for Tunebox
-Built on pygame.mixer with background pre-fetching, gapless hand-over, seek, volume,
-shuffle, repeat modes, and smart auto-radio.
+Plays through an audio backend (core/audio.py: pygame.mixer, or mpv on Termux) with background
+pre-fetching, gapless hand-over, seek, volume, shuffle, repeat modes, and smart auto-radio.
 
 Thread model: UI threads, worker threads and the monitor thread all call into this
 class. `_lock` guards queue/state mutation; `_load_lock` serializes track loading so
 two loads never touch the mixer at once.
 
 Gapless: while a song plays, the next one is downloaded and handed to the mixer
-(`pygame.mixer.music.queue`). The mixer has no "un-queue", so whenever an edit changes
-what should play next, `_rearm()` reloads the current song at its exact position (which
-clears the mixer's queue) and queues the right song instead. The app's idea of "what is
+(`audio.queue`). The audio engine has no "un-queue", so whenever an edit changes what
+should play next, `_rearm()` reloads the current song at its exact position (which clears
+the engine's queue) and queues the right song instead. The app's idea of "what is
 next" and the audio that will actually play therefore never drift apart.
 
 Queue editing and the shuffle bag live in `QueueMixin` (core/playqueue.py).
 """
 import os
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
-
 import time
 import random
 import threading
-import pygame
 from typing import List, Dict, Any, Optional, Callable
 from ..config import config
+from .audio import create_audio_backend
 from . import downloader
 from .downloader import cache_track_audio, get_cached_track_path
 from .database import add_history
@@ -43,14 +41,9 @@ class Player(QueueMixin):
         return cls._instance
 
     def init_player(self):
-        self.audio_ok = True
-        try:
-            pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=2048)
-        except Exception:
-            try:
-                pygame.mixer.init()
-            except Exception:
-                self.audio_ok = False
+        self.audio = create_audio_backend()           # pygame.mixer, or mpv on Termux (core/audio.py)
+        self.audio_ok = bool(self.audio.ok)
+        self.audio_problem = self.audio.problem
 
         self.queue: List[Dict[str, Any]] = []
         self.queue_index: int = -1
@@ -124,10 +117,7 @@ class Player(QueueMixin):
                 pass
 
     def _apply_volume(self):
-        try:
-            pygame.mixer.music.set_volume(self.volume / 100.0)
-        except Exception:
-            pass
+        self.audio.set_volume(self.volume / 100.0)
 
     # ------------------------------------------------------------ settings
 
@@ -185,7 +175,7 @@ class Player(QueueMixin):
         if self.is_loading:
             return self.seek_offset
         try:
-            pos_ms = pygame.mixer.music.get_pos()
+            pos_ms = self.audio.pos_ms()
             if pos_ms < 0:
                 return self.seek_offset
             return self.seek_offset + (pos_ms / 1000.0)
@@ -220,13 +210,13 @@ class Player(QueueMixin):
                 self._paused_pos = seek_start
                 self._last_pos_ms = 0
             try:
-                pygame.mixer.music.stop()      # don't let the previous song play on during the download
+                self.audio.stop()              # don't let the previous song play on during the download
             except Exception:
                 pass
             self._notify()
             try:
                 if not self.audio_ok:
-                    self._fail("No audio output device available.")
+                    self._fail(self.audio_problem or "No audio output device available.")
                     with self._lock:
                         self.is_playing = False
                     return False
@@ -250,14 +240,8 @@ class Player(QueueMixin):
                     return False
 
                 try:
-                    pygame.mixer.music.load(audio_file)
                     self._apply_volume()
-                    if seek_start > 0:
-                        pygame.mixer.music.play(start=seek_start)
-                    else:
-                        pygame.mixer.music.play()
-                    if start_paused:
-                        pygame.mixer.music.pause()
+                    self.audio.load(audio_file, start=seek_start, paused=start_paused)
                 except Exception as e:
                     self._fail(f"Playback error: {e}")
                     with self._lock:
@@ -338,9 +322,9 @@ class Player(QueueMixin):
         if self.is_playing and not self.is_paused and not self.is_loading:
             try:
                 # Freeze the displayed position. Do NOT fold it into seek_offset:
-                # pygame's get_pos() already includes everything played so far.
+                # the backend's pos_ms() already includes everything played so far.
                 self._paused_pos = self.get_position()
-                pygame.mixer.music.pause()
+                self.audio.pause()
                 self.is_paused = True
                 self._notify()
             except Exception:
@@ -349,7 +333,7 @@ class Player(QueueMixin):
     def resume(self):
         if self.is_playing and self.is_paused:
             try:
-                pygame.mixer.music.unpause()
+                self.audio.unpause()
                 self.is_paused = False
                 self._notify()
             except Exception:
@@ -366,7 +350,7 @@ class Player(QueueMixin):
 
     def stop(self):
         try:
-            pygame.mixer.music.stop()
+            self.audio.stop()
         except Exception:
             pass
         with self._lock:
@@ -478,10 +462,7 @@ class Player(QueueMixin):
             if not path or not playing or not os.path.exists(path):
                 return
             try:
-                pygame.mixer.music.load(path)
-                pygame.mixer.music.play(start=pos) if pos > 0 else pygame.mixer.music.play()
-                if paused:
-                    pygame.mixer.music.pause()
+                self.audio.load(path, start=pos, paused=paused)
             except Exception:
                 return
             with self._lock:
@@ -512,7 +493,7 @@ class Player(QueueMixin):
             if nxt is None or nxt[1] is not track:               # the queue changed while we were downloading
                 return
             try:
-                pygame.mixer.music.queue(path)
+                self.audio.queue(path)
             except Exception:
                 return
             self._armed = (gen, nxt[0], track)
@@ -565,11 +546,11 @@ class Player(QueueMixin):
             if not self.is_playing or self.is_paused or self.is_loading:
                 continue
             try:
-                pos_ms = pygame.mixer.music.get_pos()
+                pos_ms = self.audio.pos_ms()
                 if self._armed and pos_ms >= 0 and self._last_pos_ms - pos_ms > 1000:
                     self._on_gapless_advance()
                 self._last_pos_ms = pos_ms
-                if not pygame.mixer.music.get_busy() and not self.is_loading:
+                if not self.audio.busy() and not self.is_loading:
                     self.next(auto=True)
             except Exception:
                 pass

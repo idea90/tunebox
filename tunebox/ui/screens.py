@@ -6,9 +6,9 @@ from rich.table import Table
 from rich.text import Text
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Vertical, VerticalScroll
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
-from textual.widgets import Input, Label, OptionList, Static
+from textual.widgets import Button, Input, Label, OptionList, Static
 from textual.widgets.option_list import Option
 
 from ..core.database import create_playlist, get_playlists
@@ -21,7 +21,7 @@ class PlaylistPicker(ModalScreen[Optional[str]]):
     BINDINGS = [Binding("escape", "cancel", "Cancel")]
     DEFAULT_CSS = """
     PlaylistPicker { align: center middle; }
-    #picker { width: 56; height: auto; max-height: 24; background: $panel; border: round $primary; padding: 1 2; }
+    #picker { width: 56; max-width: 96%; height: auto; max-height: 24; background: $panel; border: round $primary; padding: 1 2; }
     #picker OptionList { height: auto; max-height: 12; margin: 1 0; }
     """
 
@@ -55,7 +55,7 @@ class NamePrompt(ModalScreen[Optional[str]]):
     BINDINGS = [Binding("escape", "cancel", "Cancel")]
     DEFAULT_CSS = """
     NamePrompt { align: center middle; }
-    #name-prompt { width: 56; height: auto; background: $panel; border: round $primary; padding: 1 2; }
+    #name-prompt { width: 56; max-width: 96%; height: auto; background: $panel; border: round $primary; padding: 1 2; }
     #name-prompt Input { margin: 1 0 0 0; }
     """
 
@@ -96,7 +96,7 @@ class HelpScreen(ModalScreen[None]):
     ]
     DEFAULT_CSS = """
     HelpScreen { align: center middle; }
-    #help { width: 86; max-width: 95%; height: 85%; background: $panel; border: round $primary; padding: 1 2; }
+    #help { width: 86; max-width: 98%; height: 85%; background: $panel; border: round $primary; padding: 1 2; }
     #help-title { text-style: bold; }
     #help-filter { margin: 1 0; }
     #help-scroll { height: 1fr; }
@@ -139,3 +139,43 @@ class HelpScreen(ModalScreen[None]):
 
     def action_close(self) -> None:
         self.dismiss(None)
+
+
+class ConfirmPrompt(ModalScreen[bool]):
+    """A yes / no question. Enter or y confirms; Esc or n cancels."""
+
+    BINDINGS = [
+        Binding("enter,y", "yes", "Yes"),
+        Binding("escape,n", "no", "No"),
+    ]
+    DEFAULT_CSS = """
+    ConfirmPrompt { align: center middle; }
+    #confirm { width: 66; max-width: 96%; height: auto; background: $panel; border: round $primary; padding: 1 2; }
+    #confirm-text { margin-bottom: 1; }
+    #confirm-buttons { height: 3; align: right middle; }
+    #confirm-buttons Button { margin-left: 2; }
+    """
+
+    def __init__(self, message: str, yes_label: str = "Yes", no_label: str = "Cancel"):
+        super().__init__()
+        self.message, self.yes_label, self.no_label = message, yes_label, no_label
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="confirm"):
+            yield Static(Text(self.message), id="confirm-text")
+            with Horizontal(id="confirm-buttons"):
+                yield Button(self.no_label, id="confirm-no")
+                yield Button(self.yes_label, id="confirm-yes", variant="primary")
+
+    def on_mount(self) -> None:
+        self.query_one("#confirm-yes", Button).focus()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        event.stop()
+        self.dismiss(event.button.id == "confirm-yes")
+
+    def action_yes(self) -> None:
+        self.dismiss(True)
+
+    def action_no(self) -> None:
+        self.dismiss(False)

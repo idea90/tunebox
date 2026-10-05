@@ -12,6 +12,8 @@ import subprocess
 import sys
 from typing import Any, Dict, Optional
 
+from .. import termux
+
 MUSIC_URL = "https://music.youtube.com"
 
 
@@ -88,6 +90,8 @@ def copy_native(text: str) -> Optional[str]:
             return "windows" if _copy_windows(text) else None
         if sys.platform == "darwin":
             return "pbcopy" if _copy_with(["pbcopy"], text) else None
+        if termux.clipboard_set(text):
+            return "termux-clipboard"
         for name, cmd in (("wl-copy", ["wl-copy"]),
                           ("xclip", ["xclip", "-selection", "clipboard"]),
                           ("xsel", ["xsel", "--clipboard", "--input"])):

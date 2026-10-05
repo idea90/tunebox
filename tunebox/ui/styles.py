@@ -94,6 +94,28 @@ APP_CSS = """
     #t-detail { height: 3fr; }
     #t-detail-albums { height: 2fr; }
 
+    /* ---------- small screens (a phone held upright): one column, mini player, big touch buttons ---------- */
+    #mini { display: none; height: auto; background: $surface; padding: 0 1; }
+    #mini-now { height: 1; margin-top: 1; }
+    #mini-seek { margin: 0; }
+    #mini-ctl { height: 3; margin-top: 1; }
+    #mini-ctl Chip { width: 1fr; height: 3; margin: 0 1 0 0; padding: 0; content-align: center middle; }
+    #close-player { display: none; }
+    .compact #main { width: 1fr; padding: 0; }
+    .compact #sidebar { width: 1fr; min-width: 0; max-width: 100%; padding: 0 1; }
+    .compact Footer { display: none; }
+    .compact #topbar { padding: 0 1; }
+    .compact #close-player { display: block; height: 3; width: 100%; margin: 0 0 1 0; padding: 0 2; content-align: left middle; }
+    .compact .ctl { height: 3; }
+    .compact .ctl Chip { height: 3; content-align: center middle; padding: 0 2; }
+    .compact #lib-bar { height: 3; overflow-x: auto; overflow-y: hidden; scrollbar-size-horizontal: 0; }
+    .compact #t-upnext, .compact #mini-lyrics-title, .compact #mini-lyrics, .compact .section { display: none; }
+    .compact #lib-bar Chip { height: 3; content-align: center middle; }
+    .compact #d-actions { height: 3; }
+    .compact #d-actions Chip { height: 3; content-align: center middle; }
+    .compact .settings-grid { grid-size: 1; grid-columns: 1fr; }
+    .compact #search-bar Select { width: 14; }
+
     /* ---------- settings ---------- */
     #settings-box { padding: 0 1; }
     .settings-title { color: $text-muted; text-style: bold; margin: 1 0 0 0; }

@@ -7,6 +7,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from . import termux
+
 # Before the rename to Tunebox the app was called Metrolist and kept its data in ~/.metrolist.
 LEGACY_APP_DIR = Path.home() / ".metrolist"
 LEGACY_DB_NAME = "metrolist.db"
@@ -131,10 +133,14 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "repeat_mode": "off",
     "shuffle": False,
     "download_format": "mp3",
-    "download_dir": str(DOWNLOADS_DIR),
+    "download_dir": str(termux.music_dir() or DOWNLOADS_DIR),   # on Termux: Music/Tunebox, so Android apps see the files
+    "download_playlist_folders": True,   # whole-playlist / album downloads go into a folder named after it
     "cookie_file": "",
     "normalize_volume": True,   # loudness-normalize audio as it is cached/downloaded
     "gapless": True,
+    "audio_backend": "auto",    # auto | pygame | mpv   (auto = mpv on Termux, pygame elsewhere)
+    "mpv_path": "",             # full path to mpv; empty = find it on PATH
+    "mpv_args": [],             # extra mpv arguments, e.g. ["--ao=opensles"]
     "viz_style": "bars",        # bars | mirror | line | off
     "viz_colors": "theme",      # theme | rainbow | fire | mono
     "art_style": "auto",        # auto | ascii | blocks | off  (auto = real image if the terminal can, else ascii)

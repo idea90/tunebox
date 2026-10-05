@@ -22,9 +22,9 @@ class TopBar(Static):
         super().__init__("", **kwargs)
         self._shown = None
 
-    def show(self, signed_in: bool, sleep_minutes: int) -> None:
+    def show(self, signed_in: bool, sleep_minutes: int, downloading: str = "") -> None:
         th = self.app.current_theme
-        state = (signed_in, sleep_minutes, th.primary)
+        state = (signed_in, sleep_minutes, th.primary, downloading)
         if state == self._shown:
             return
         self._shown = state
@@ -33,6 +33,8 @@ class TopBar(Static):
         left.append("TUNEBOX", style=f"bold {th.foreground}")
         left.append("   YouTube Music", style="#7d7d8a")
         right = Text()
+        if downloading:
+            right.append(f"\u2193 {downloading}   ", style=f"bold {th.primary}")
         if sleep_minutes:
             right.append(f"sleep {sleep_minutes}m   ", style=th.accent)
         right.append("\u25cf ", style=th.success if signed_in else "#7d7d8a")
@@ -42,6 +44,29 @@ class TopBar(Static):
         grid.add_column(justify="right")
         grid.add_row(left, right)
         self.update(grid)
+
+
+class MiniNow(Static):
+    """The one-line 'now playing' of the small-screen layout. Tap it to open the full player."""
+
+    def on_click(self, event: events.Click) -> None:
+        if event.button == 1:
+            event.stop()
+            self.app.action_toggle_player()
+
+
+class MiniPlayer(Vertical):
+    """Small-screen player strip under the lists: what is playing, a progress bar, and big touch buttons."""
+
+    def compose(self) -> ComposeResult:
+        yield MiniNow("", id="mini-now")
+        yield SeekBar(id="mini-seek")
+        with Horizontal(id="mini-ctl"):
+            yield Chip("\u25c0\u25c0", "prev", id="m-prev")
+            yield Chip(PLAY, "play_pause", id="m-play")
+            yield Chip("\u25b6\u25b6", "next", id="m-next")
+            yield Chip(HEART_OFF, "favorite", id="m-fav")
+            yield Chip("\u25b2", "toggle_player", id="m-open")
 
 
 class NowPlaying(Vertical):
