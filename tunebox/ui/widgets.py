@@ -21,6 +21,7 @@ TRACK_TYPES = ("song", "video")
 MUTED = "#a1a1b0"
 DIM = "#6b6b78"
 HEART_OFF_STYLE = "#4a4a56"
+NARROW_WIDTH = 54            # below this a table shows one 'Song' column (title + artist) and a heart: a phone
 ALBUM_MIN_WIDTH = 80          # the Album column appears on tables at least this wide
 
 
@@ -194,26 +195,35 @@ class TrackTable(DataTable):
     def heart_col(self) -> Optional[int]:
         if self.compact:
             return None
+        if self._widths and self._widths[3]:        # narrow layout: # | Song | heart
+            return 2
         return 5 if self._widths and self._widths[2] else 4
 
     # ------------------------------------------------------------ rendering
 
     def _compute_widths(self) -> tuple:
-        """(title, artist, album) column widths; album is 0 when the table is too narrow to show it."""
+        """(title, artist, album, narrow). Album is 0 when the table is too narrow to show it. `narrow` (a phone):
+        one combined Song column, and the first number is its width."""
+        if not self.compact and 0 < self.size.width < NARROW_WIDTH:
+            return (max(8, self.size.width - 3 * 2 - 2 - 3 - 2), 0, 0, 1)      # minus padding, '#', heart
         wide = not self.compact and self.size.width >= ALBUM_MIN_WIDTH
         ncols = 3 if self.compact else (6 if wide else 5)
         fixed = 4 if self.compact else 5 + 7 + 2
         avail = max(12, self.size.width - 2 * ncols - 2 - fixed)
         if wide:
             title, artist = int(avail * 0.4), int(avail * 0.3)
-            return (title, artist, avail - title - artist)
+            return (title, artist, avail - title - artist, 0)
         title = max(8, int(avail * (0.6 if self.compact else 0.55)))
-        return (title, max(6, avail - title), 0)
+        return (title, max(6, avail - title), 0, 0)
 
     def _build_columns(self) -> None:
         self.clear(columns=True)
-        t, a, al = self._widths or (20, 15, 0)
-        self.add_column("#", width=4 if self.compact else 5)
+        t, a, al, narrow = self._widths or (20, 15, 0, 0)
+        self.add_column("#", width=4 if self.compact else (3 if narrow else 5))
+        if narrow:
+            self.add_column("Song", width=t)
+            self.add_column(HEART_ON, width=2)
+            return
         self.add_column("Title", width=t)
         self.add_column("Artist", width=a)
         if al:
@@ -225,13 +235,21 @@ class TrackTable(DataTable):
     def _cells(self, i: int, item: Dict[str, Any], num: int) -> tuple:
         favs, cur_vid, playing, cur_idx = self._ctx
         th = self.app.current_theme
-        t_w, a_w, al_w = self._widths or (20, 15, 0)
+        t_w, a_w, al_w, narrow = self._widths or (20, 15, 0, 0)
         typ = item.get("type", "song")
 
         def pack(num_c, title_c, artist_c, album_c, time_c, heart_c) -> tuple:
             """Cells in column order for this table's layout."""
             if self.compact:
                 return (num_c, title_c, artist_c)
+            if narrow:                      # title and artist share one cell; no album, no time
+                song = Text(no_wrap=True)
+                song.append_text(title_c)
+                if artist_c.plain:
+                    song.append("  ")
+                    song.append_text(artist_c)
+                song.truncate(t_w, overflow="ellipsis")
+                return (num_c, song, heart_c)
             return (num_c, title_c, artist_c) + ((album_c,) if al_w else ()) + (time_c, heart_c)
 
         if typ == "header":
@@ -270,8 +288,12 @@ class TrackTable(DataTable):
         sub = item.get("artist") or item.get("author") or item.get("description") or ""
         if typ == "local_playlist":
             sub = f"{item.get('trackCount', 0)} tracks"
-        return pack(num_t, _fit(item.get("title") or item.get("name") or "Unknown", t_w, title_style),
-                    _fit(sub, a_w, MUTED), Text(""), Text(tag[:7], style="bold " + th.secondary), Text(""))
+        title_cell = _fit(item.get("title") or item.get("name") or "Unknown", t_w, title_style)
+        if narrow:                          # no Time column to hold the type tag: put it in front of the name
+            tagged = Text(f"{ {'PLAYLIST': 'LIST', 'MY LIST': 'MINE'}.get(tag, tag) } ", style="bold " + th.secondary)
+            tagged.append_text(title_cell)
+            title_cell = tagged
+        return pack(num_t, title_cell, _fit(sub, a_w, MUTED), Text(""), Text(tag[:7], style="bold " + th.secondary), Text(""))
 
     def _populate(self) -> None:
         self.clear()

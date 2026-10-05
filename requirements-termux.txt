@@ -1,0 +1,9 @@
+# Python packages for Termux (Android). numpy and Pillow come from Termux's own packages instead:
+#   pkg install python-numpy python-pillow
+# pygame is not needed there: audio goes through mpv (pkg install mpv).
+textual>=1.0.0
+ytmusicapi>=1.12.0
+yt-dlp>=2024.0.0
+rich>=13.0.0
+requests>=2.30.0
+mutagen>=1.47.0

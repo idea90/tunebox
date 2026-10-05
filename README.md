@@ -29,6 +29,7 @@ Built on [Textual](https://textual.textualize.io/), `yt-dlp`, `ytmusicapi` and `
 - **Your YouTube Music account** (optional): liked songs and your playlists, via `tunebox login`.
 - **Media keys** (optional): hardware play/pause/next/previous, via `pip install "tunebox[media]"`.
 - **Desktop media controls on Linux (MPRIS)**: the song, artist, cover and play state show in your desktop's media widget, lock screen, KDE Connect and `playerctl`, and their buttons, seek bar and volume control Tunebox.
+- **Runs on Android (Termux)** with a phone-sized layout: one column, a mini player with big touch buttons, and the full player a tap away. See [Termux](#termux-android).
 - **Built-in help**: press `?` for every shortcut, with a filter box.
 - **Mouse and keyboard**: click a song to play it, click the seek bar, click the heart, click the control chips, scroll over the player card for volume.
 - **Album art in the terminal**: the playing song's official album cover (looked up on iTunes, then Deezer; never a YouTube video frame), also embedded in downloads. On terminals with a graphics protocol it is drawn as a real image (kitty and Ghostty via the kitty protocol; WezTerm, Windows Terminal 1.22+, iTerm2, foot and Konsole via Sixel). Everywhere else it falls back to colored ASCII art or sharp half-block pixels. Press `i` to cycle `auto` / `ascii` / `blocks` / `off`.
@@ -65,6 +66,45 @@ tunebox              # if installed with pip install -e .
 
 Use a terminal with mouse support and a font that has the symbols `♥ ♡ ▶ ❚❚ ━ ●`
 (Windows Terminal, iTerm2, GNOME Terminal, kitty, etc.).
+
+## Termux (Android)
+
+Tunebox runs in [Termux](https://termux.dev) (install it from F-Droid, not the Play Store). Audio plays through `mpv`,
+because pygame has no audio output on Android.
+
+```bash
+pkg install git
+git clone <this repository> tunebox && cd tunebox
+bash termux-install.sh        # installs python, ffmpeg, mpv, numpy, pillow, termux-api and the Python packages
+tunebox
+```
+
+Once, for the best experience:
+
+1. `termux-setup-storage` and allow it: downloads then go to `Music/Tunebox` on your phone, where Android's music
+   apps and file manager see them (set `download_dir` in `config.json` to change that).
+2. Install the **Termux:API** app (from F-Droid, same source as Termux). Tunebox then holds Android's wake lock
+   while music plays or downloads run, so playback keeps going with the screen off, and `y` copies to the phone's
+   clipboard. In Android's battery settings set Termux to *Unrestricted* / *Don't optimize*.
+
+**Using it**
+- **Upright (narrow screens, under 80 columns):** one column. The lists fill the screen, with a mini player under
+  them (song, progress bar, big previous / play / next / heart buttons). Tap the song line, the `▲` button, or press
+  `o` to open the full player (cover, visualizer, volume, shuffle / repeat); `Esc` or the *Back* bar returns.
+  Lists show one `Song` column (title and artist together) and a heart. Tab names are shortened (`Find`, `Lib`,
+  `Saved`, `Setup`) and the layout re-flows when you rotate the phone.
+- **Sideways:** the normal two-pane layout.
+- Tap to select and play, swipe to scroll. Termux's extra-keys row gives you `Esc`, arrows and `Tab`; all other
+  shortcuts are single letters (`?` lists them).
+
+**Notes**
+- No cover *images* (Termux has no graphics protocol): you get the text / block art. No lock-screen or notification
+  media controls yet; the music is controlled from the app.
+- Android may stop Termux in the background. The wake lock above helps; Termux's own notification must stay.
+- Another audio program or a different mpv setup: set `audio_backend` (`auto`, `mpv` or `pygame`), `mpv_path` and
+  `mpv_args` in `config.json`. If you hear nothing, try `"mpv_args": ["--ao=opensles"]`.
+- If yt-dlp complains about a missing JavaScript runtime, install one: `pkg install nodejs`.
+- The mpv backend also works on desktops: `TUNEBOX_AUDIO=mpv python run.py`.
 
 ---
 
@@ -115,6 +155,7 @@ Scrolling over a list scrolls the list, not the volume.
 | `c` | Clear the queue |
 | `S` | Save the whole queue as a new playlist (asks for a name) |
 | `?` | Show every shortcut, with a filter box |
+| `o` | Small screens: open / close the full player |
 | `t` | Cycle theme |
 | `q` | Quit |
 
@@ -219,8 +260,10 @@ The UI tests drive the real Textual app headlessly with simulated clicks, scroll
 tunebox/
   main.py            CLI entry point and one-shot commands
   config.py          settings, paths, legacy-name migration
+  termux.py          Android / Termux helpers (detection, wake lock, clipboard, Music folder)
   core/              no UI code
     player.py          playback, gapless hand-over, sleep timer
+    audio.py           audio backends: pygame (desktop) and mpv (Termux)
     playqueue.py       queue editing and the shuffle bag (mixed into Player)
     database/          SQLite: connection/schema, favorites, playlists, history, downloads
     ytmusic.py  downloader.py  batch.py  lyrics.py  albumart.py  spectrum.py  recommend.py  session.py  share.py  mediakeys.py  mpris.py

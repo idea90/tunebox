@@ -44,6 +44,7 @@ SECTIONS: List[Tuple[str, List[Entry]]] = [
         Entry(("g",), "Artist page of the highlighted (or playing) song"),
         Entry(("b",), "Album page of the highlighted (or playing) song"),
         Entry(("question_mark",), "This help"),
+        Entry(("o",), "Small screens: open / close the full player"),
     ]),
     ("Songs, queue and library", [
         Entry(("f",), "Favorite / unfavorite the playing song"),

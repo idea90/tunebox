@@ -21,7 +21,7 @@ class PlaylistPicker(ModalScreen[Optional[str]]):
     BINDINGS = [Binding("escape", "cancel", "Cancel")]
     DEFAULT_CSS = """
     PlaylistPicker { align: center middle; }
-    #picker { width: 56; height: auto; max-height: 24; background: $panel; border: round $primary; padding: 1 2; }
+    #picker { width: 56; max-width: 96%; height: auto; max-height: 24; background: $panel; border: round $primary; padding: 1 2; }
     #picker OptionList { height: auto; max-height: 12; margin: 1 0; }
     """
 
@@ -55,7 +55,7 @@ class NamePrompt(ModalScreen[Optional[str]]):
     BINDINGS = [Binding("escape", "cancel", "Cancel")]
     DEFAULT_CSS = """
     NamePrompt { align: center middle; }
-    #name-prompt { width: 56; height: auto; background: $panel; border: round $primary; padding: 1 2; }
+    #name-prompt { width: 56; max-width: 96%; height: auto; background: $panel; border: round $primary; padding: 1 2; }
     #name-prompt Input { margin: 1 0 0 0; }
     """
 
@@ -96,7 +96,7 @@ class HelpScreen(ModalScreen[None]):
     ]
     DEFAULT_CSS = """
     HelpScreen { align: center middle; }
-    #help { width: 86; max-width: 95%; height: 85%; background: $panel; border: round $primary; padding: 1 2; }
+    #help { width: 86; max-width: 98%; height: 85%; background: $panel; border: round $primary; padding: 1 2; }
     #help-title { text-style: bold; }
     #help-filter { margin: 1 0; }
     #help-scroll { height: 1fr; }
@@ -150,7 +150,7 @@ class ConfirmPrompt(ModalScreen[bool]):
     ]
     DEFAULT_CSS = """
     ConfirmPrompt { align: center middle; }
-    #confirm { width: 66; height: auto; background: $panel; border: round $primary; padding: 1 2; }
+    #confirm { width: 66; max-width: 96%; height: auto; background: $panel; border: round $primary; padding: 1 2; }
     #confirm-text { margin-bottom: 1; }
     #confirm-buttons { height: 3; align: right middle; }
     #confirm-buttons Button { margin-left: 2; }

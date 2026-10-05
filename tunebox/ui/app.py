@@ -17,6 +17,7 @@ from textual.containers import Grid, Horizontal, Vertical, VerticalScroll
 from textual.theme import Theme
 from textual.widgets import Footer, Input, Select, Static, TabbedContent, TabPane
 
+from .. import termux
 from ..config import config
 from ..core import mediakeys, mpris, session
 from ..core.player import player
@@ -26,7 +27,7 @@ from .mixins import (
     ArtMixin, ClipboardMixin, DataMixin, DownloadsMixin, HelpersMixin, LibraryMixin, LyricsMixin, NavigationMixin,
     PlaybackMixin, RefreshMixin, RemoteMixin, SettingsMixin, VizMixin,
 )
-from .panels import AppTabs, LyricsView, NowPlaying, TopBar
+from .panels import AppTabs, LyricsView, MiniPlayer, NowPlaying, TopBar
 from .styles import APP_CSS
 from .suggest import SearchSuggester
 from .theme import THEMES, TEXTUAL_PALETTES
@@ -56,6 +57,7 @@ class TuneboxApp(HelpersMixin, DataMixin, DownloadsMixin, RefreshMixin, LyricsMi
         Binding("D", "download_all", "Download all", show=False),
         Binding("q", "quit_app", "Quit"),
         Binding("question_mark", "help", "Help"),
+        Binding("o", "toggle_player", "Player", show=False),
         Binding("plus,equals_sign", "vol(5)", "Vol+", show=False),
         Binding("minus", "vol(-5)", "Vol-", show=False),
         Binding("right_square_bracket", "skip(10)", "+10s", show=False),
@@ -115,6 +117,8 @@ class TuneboxApp(HelpersMixin, DataMixin, DownloadsMixin, RefreshMixin, LyricsMi
         self.feed_items: List[Dict[str, Any]] = []      # YouTube's own Home shelves
         self._because: Optional[Dict[str, Any]] = None  # "Because you played X" shelf
         self._because_seed: Optional[str] = None
+        self.compact = False                 # small screen (a phone held upright): one column + mini player
+        self.player_view = False             # compact layout only: the full player is open instead of the lists
         self.batch: Optional[Dict[str, Any]] = None       # the whole-list download in progress, if any
         self._saved = False      # session already written by an explicit quit (stop() zeroes the position)
         self._sig = None
@@ -190,7 +194,9 @@ class TuneboxApp(HelpersMixin, DataMixin, DownloadsMixin, RefreshMixin, LyricsMi
                         yield TrackTable(kind="detail", id="t-detail")
                         yield Static("Albums & singles", id="d-albums-label")
                         yield TrackTable(kind="detail", id="t-detail-albums")
+                yield MiniPlayer(id="mini")
             with Vertical(id="sidebar"):
+                yield Chip("\u25be  Back to the list", "toggle_player", id="close-player")
                 yield NowPlaying(id="np")
                 yield Static("UP NEXT", classes="section")
                 yield TrackTable(compact=True, kind="upnext", id="t-upnext")
@@ -218,11 +224,12 @@ class TuneboxApp(HelpersMixin, DataMixin, DownloadsMixin, RefreshMixin, LyricsMi
         self._start_mpris()
         self.call_after_refresh(self._hide_details_tab)
         self.call_after_refresh(self._relabel_tabs)
+        self.call_after_refresh(self._apply_layout)
         self.set_interval(15, lambda: session.save(player))   # so a crash loses at most 15 s
         if config.load_error:
             self.say(config.load_error, True)
         if not player.audio_ok:
-            self.say("No audio output device found - playback is unavailable.", True)
+            self.say(f"{player.audio_problem or 'No audio output device found.'} Playback is unavailable.", True)
 
         self.set_interval(0.5, self.tick)
         self._bg(self._load_home)
@@ -242,6 +249,7 @@ class TuneboxApp(HelpersMixin, DataMixin, DownloadsMixin, RefreshMixin, LyricsMi
             session.save(player)
         mediakeys.stop()
         mpris.stop()
+        termux.wake_lock(False)
 
     def _media_action(self, action: str) -> None:
         if action == "play_pause":

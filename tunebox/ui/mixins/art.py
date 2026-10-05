@@ -15,6 +15,7 @@ class ArtMixin:
     MIN_ART_ROWS = 6
     MAX_ART_ROWS = 14
     ART_RESERVED_ROWS = 32     # rest of the sidebar, incl. ~5 rows of Up Next (28 left Up Next one row at 40 lines)
+    COMPACT_RESERVED_ROWS = 22  # phone layout: the player is its own screen, with big buttons and no Up Next / lyrics
 
     VIZ_MIN_ROWS = 2
     VIZ_MAX_ROWS = 4
@@ -22,7 +23,7 @@ class ArtMixin:
     def _sidebar_budget(self) -> tuple:
         """(art rows, visualizer rows). Both share what's left after the rest of the sidebar; on short
         terminals the visualizer shrinks first so the cover still fits, and Up Next always keeps its rows."""
-        avail = self.size.height - self.ART_RESERVED_ROWS
+        avail = self.size.height - (self.COMPACT_RESERVED_ROWS if self.compact else self.ART_RESERVED_ROWS)
         art_on = inline.resolve_style(config.get("art_style", "auto")) != "off"
         viz_rows = 0
         if config.get("viz_style", "bars") != "off":
