@@ -5,6 +5,8 @@ Search, stream, queue, favorite, see synced lyrics, and download tracks, all wit
 
 Built on [Textual](https://textual.textualize.io/), `yt-dlp`, `ytmusicapi` and `pygame.mixer`.
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/idea90/tunebox)
+
 ![Home](docs/screenshots/home.png)
 
 <p>
@@ -208,6 +210,10 @@ python -m pytest
 ```
 
 The UI tests drive the real Textual app headlessly with simulated clicks, scrolls and key presses.
+
+No setup needed to try it: the **Open in GitHub Codespaces** button at the top starts a ready environment (Python,
+ffmpeg, mpv and all packages installed). Codespaces has no sound card, so playback is silent there; the interface,
+search, downloads and `python -m pytest` all work.
 
 ### Project layout
 
