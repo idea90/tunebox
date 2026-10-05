@@ -293,4 +293,4 @@ session) or any other `claude rc` option to change that. Needs the `claude` CLI 
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).
