@@ -1,6 +1,6 @@
 # Tunebox
 
-A YouTube Music client for the terminal, inspired by **Metrolist for Android**.
+A YouTube Music client for the terminal, inspired by [**Metrolist**](https://github.com/MetrolistGroup/Metrolist) for Android.
 Search, stream, queue, favorite, see synced lyrics, and download tracks, all with mouse or keyboard.
 
 Built on [Textual](https://textual.textualize.io/), `yt-dlp`, `ytmusicapi` and `pygame.mixer`.
@@ -235,7 +235,8 @@ are not implemented.
 This project used to be called **Metrolist CLI**. The first time Tunebox starts it moves your library from
 `~/.metrolist` to `~/.tunebox` (favorites, playlists, history, downloads, settings, session) and fixes the file
 paths stored inside, so nothing is lost. If the old folder is in use at that moment, Tunebox keeps using it and
-tries again next time. The old `METROLIST_HOME` and `METROLIST_NO_GRAPHICS` variables still work.
+tries again next time. The old `METROLIST_HOME` and `METROLIST_NO_GRAPHICS` variables still work. Tunebox is not
+affiliated with the Metrolist project (see [Credits](#credits)).
 
 ## Data
 
@@ -290,6 +291,30 @@ python remote.py
 Starts Claude Code Remote Control (`claude rc`) in this folder, so you can work on the project from claude.ai/code
 or the Claude mobile app. The session is named `tunebox`; pass `--name <name>`, `-c` (reattach to the last
 session) or any other `claude rc` option to change that. Needs the `claude` CLI and a Claude subscription.
+
+## Credits
+
+**Metrolist.** Tunebox was inspired by [Metrolist](https://github.com/MetrolistGroup/Metrolist) ([metrolist.cc](https://metrolist.cc)),
+the free and open-source YouTube Music client for Android by Mo Agamy ([@mostafaalagamy](https://github.com/mostafaalagamy))
+and contributors, licensed under GPL-3.0. Its feature set and feel (search, queue, synced lyrics, library,
+downloads, a player that stays out of the way) are what this project set out to bring to the terminal. If you use
+Android, please try the original and support its authors. Tunebox is an independent project: it is **not affiliated
+with or endorsed by** the Metrolist project, and the name was changed from "Metrolist CLI" to Tunebox for that reason.
+
+**Built with** these open-source projects and services, with thanks to their authors:
+
+- [Textual](https://textual.textualize.io/) and [Rich](https://github.com/Textualize/rich) (Textualize): the terminal interface
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp): streaming and downloads
+- [ytmusicapi](https://github.com/sigma67/ytmusicapi): YouTube Music search, library and playlists
+- [FFmpeg](https://ffmpeg.org) (via `imageio-ffmpeg`): audio conversion and the visualizer's analysis
+- [pygame](https://www.pygame.org) and [mpv](https://mpv.io): audio playback (desktop and Termux)
+- [LRCLIB](https://lrclib.net): synced lyrics
+- The [iTunes Search API](https://performance-partners.apple.com/search-api) and the [Deezer API](https://developers.deezer.com/api): official album covers
+- [mutagen](https://github.com/quodlibet/mutagen), [Pillow](https://python-pillow.org), [NumPy](https://numpy.org),
+  [Requests](https://requests.readthedocs.io), [textual-image](https://github.com/lnqs/textual-image) and [dbus-next](https://github.com/altdesktop/python-dbus-next)
+
+YouTube, YouTube Music, iTunes and Deezer are trademarks of their owners. Tunebox is an unofficial client and is not
+affiliated with or endorsed by Google, Apple or Deezer.
 
 ## License
 
