@@ -296,10 +296,9 @@ session) or any other `claude rc` option to change that. Needs the `claude` CLI 
 
 **Metrolist.** Tunebox was inspired by [Metrolist](https://github.com/MetrolistGroup/Metrolist) ([metrolist.cc](https://metrolist.cc)),
 the free and open-source YouTube Music client for Android by Mo Agamy ([@mostafaalagamy](https://github.com/mostafaalagamy))
-and contributors, licensed under GPL-3.0. Its feature set and feel (search, queue, synced lyrics, library,
-downloads, a player that stays out of the way) are what this project set out to bring to the terminal. If you use
-Android, please try the original and support its authors. Tunebox is an independent project: it is **not affiliated
-with or endorsed by** the Metrolist project, and the name was changed from "Metrolist CLI" to Tunebox for that reason.
+and contributors, licensed under GPL-3.0. Tunebox aims to bring a similar experience to the terminal. If you use
+Android, please try the original and support its authors. Tunebox is an independent project (it used to be called
+"Metrolist CLI") and is **not affiliated with or endorsed by** the Metrolist project.
 
 **Built with** these open-source projects and services, with thanks to their authors:
 
