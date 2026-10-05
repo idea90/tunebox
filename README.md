@@ -1,6 +1,6 @@
 # Tunebox
 
-A YouTube Music client for the terminal, inspired by [**Metrolist**](https://github.com/MetrolistGroup/Metrolist) for Android.
+A YouTube Music client for the terminal, based on [**Metrolist**](https://github.com/MetrolistGroup/Metrolist) for Android.
 Search, stream, queue, favorite, see synced lyrics, and download tracks, all with mouse or keyboard.
 
 Built on [Textual](https://textual.textualize.io/), `yt-dlp`, `ytmusicapi` and `pygame.mixer`.
@@ -294,11 +294,13 @@ session) or any other `claude rc` option to change that. Needs the `claude` CLI 
 
 ## Credits
 
-**Metrolist.** Tunebox was inspired by [Metrolist](https://github.com/MetrolistGroup/Metrolist) ([metrolist.cc](https://metrolist.cc)),
+**Metrolist.** Tunebox is based on [Metrolist](https://github.com/MetrolistGroup/Metrolist) ([metrolist.cc](https://metrolist.cc)),
 the free and open-source YouTube Music client for Android by Mo Agamy ([@mostafaalagamy](https://github.com/mostafaalagamy))
-and contributors, licensed under GPL-3.0. Tunebox aims to bring a similar experience to the terminal. If you use
-Android, please try the original and support its authors. Tunebox is an independent project (it used to be called
-"Metrolist CLI") and is **not affiliated with or endorsed by** the Metrolist project.
+and contributors. It started as a Python rewrite of Metrolist's original Kotlin code, done with the help of an AI
+assistant, and has been extended since (it used to be called "Metrolist CLI"). Because it is derived from Metrolist,
+which is licensed under GPL-3.0, Tunebox is licensed under GPL-3.0 as well (see [License](#license)). If you use
+Android, please try the original and support its authors. Tunebox is **not affiliated with or endorsed by** the
+Metrolist project.
 
 **Built with** these open-source projects and services, with thanks to their authors:
 
@@ -317,4 +319,9 @@ affiliated with or endorsed by Google, Apple or Deezer.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+Tunebox is free software, licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-only), the same
+license as Metrolist, on which it is based.
+
+Modification notice (GPL-3.0 section 5a): this program is a Python translation and modification of Metrolist's
+original code, first committed in this repository on 2026-10-04, and changed in many ways since. It comes with
+ABSOLUTELY NO WARRANTY.
